@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { useFavoriteProperties } from '../../hooks/useSocialHooks'
+import { useUI } from '../../context/UIContext'
 import Button from '../common/Button'
 import Icon from '../common/Icon'
 
@@ -10,11 +13,23 @@ const formatPrice = (price) =>
     maximumFractionDigits: 0,
   }).format(price)
 
-export default function PropertyCard({ property }) {
-  const [isFavorite, setIsFavorite] = useState(false)
+export default function PropertyCard({ property, variant = 'default' }) {
+  const { isAuthenticated } = useAuth()
+  const { isFavorite, toggleFavorite } = useFavoriteProperties()
+  const { notify } = useUI()
+  const saved = isFavorite(property.id)
+
+  const handleFavorite = () => {
+    if (!isAuthenticated) {
+      notify('Sign in to save properties.', 'warning')
+      return
+    }
+    toggleFavorite(property.id)
+    notify(saved ? 'Removed from saved homes.' : 'Saved to your dashboard.')
+  }
 
   return (
-    <article className="property-card reveal-card">
+    <article className={`property-card reveal-card ${variant === 'horizontal' ? 'property-card-horizontal' : ''}`}>
       <div className="property-media">
         <img src={property.image} alt={property.title} loading="lazy" />
         <div className="badge-stack">
@@ -23,23 +38,27 @@ export default function PropertyCard({ property }) {
           {property.isFeatured && <span className="badge badge-blue">Featured</span>}
         </div>
         <button
-          className={`favorite-button ${isFavorite ? 'is-active' : ''}`}
+          className={`favorite-button ${saved ? 'is-active' : ''}`}
           aria-label="Save property"
-          onClick={() => setIsFavorite((value) => !value)}
+          onClick={handleFavorite}
         >
           <Icon name="heart" />
         </button>
+        <div className="quick-actions">
+          <Link to={`/property/${property.id}`}><Icon name="eye" /> Quick View</Link>
+          <Link to="/dashboard/user/viewings"><Icon name="calendar" /> Schedule</Link>
+        </div>
         <span className="property-category">{property.category}</span>
       </div>
 
       <div className="property-body">
         <div className="property-meta-row">
-          <span className="badge badge-outline">{property.type === 'rent' ? 'For Rent' : 'For Sale'}</span>
+          <span className="badge badge-outline">{property.type === 'rent' ? 'For Rent' : property.type === 'lease' ? 'For Lease' : 'For Sale'}</span>
           <span className="listed-date">{new Date(property.listedDate).toLocaleDateString()}</span>
         </div>
-        <a href={`/property/${property.id}`} className="property-title-link">
+        <Link to={`/property/${property.id}`} className="property-title-link">
           <h3>{property.title}</h3>
-        </a>
+        </Link>
         <p className="property-location"><Icon name="pin" /> {property.location}</p>
 
         <div className="property-specs">

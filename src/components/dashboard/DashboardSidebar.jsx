@@ -1,3 +1,6 @@
+import { useState } from 'react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import Icon from '../common/Icon'
 
 const nav = {
@@ -7,17 +10,38 @@ const nav = {
 }
 
 export default function DashboardSidebar({ variant }) {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [isOpen, setIsOpen] = useState(false)
+  const route = location.pathname
+
+  const handleLogout = () => {
+    logout()
+    navigate('/auth/login')
+  }
+
   return (
-    <aside className="dashboard-sidebar">
-      <a className="brand" href="/"><span className="brand-mark"><Icon name="home" /></span><span>Luxora Homes</span></a>
-      <nav>
-        {nav[variant].map((item, index) => <a className={index === 0 ? 'is-active' : ''} href={`/dashboard/${variant}`} key={item}>{item}</a>)}
-      </nav>
-      <div className="dashboard-user">
-        <span>{variant === 'admin' ? 'Admin' : variant === 'agent' ? 'Sarah Agent' : 'John Doe'}</span>
-        <small>{variant}@luxora.demo</small>
-        <a href="/auth/login">Sign Out</a>
-      </div>
-    </aside>
+    <>
+      <button className="dashboard-mobile-toggle" onClick={() => setIsOpen(true)} type="button"><Icon name="menu" /> Menu</button>
+      <aside className={`dashboard-sidebar ${isOpen ? 'is-open' : ''}`}>
+        <button className="dashboard-close" onClick={() => setIsOpen(false)} type="button">Close</button>
+        <Link className="brand" to="/"><span className="brand-mark"><Icon name="home" /></span><span>Luxora Homes</span></Link>
+        <nav>
+          {nav[variant].map((item, index) => {
+            const slug = item === 'Overview' ? '' : `/${item.toLowerCase().replaceAll(' ', '-')}`
+            const href = `/dashboard/${variant}${slug}`
+            const isActive = index === 0 ? route === `/dashboard/${variant}` : route.includes(slug)
+            return <NavLink className={isActive ? 'is-active' : ''} to={href} key={item}>{item}{['Messages', 'Notifications', 'Reports'].includes(item) && <span>3</span>}</NavLink>
+          })}
+        </nav>
+        <div className="dashboard-user">
+          <span>{user?.name || (variant === 'admin' ? 'Admin' : variant === 'agent' ? 'Sarah Agent' : 'John Doe')}</span>
+          <small>{user?.email || `${variant}@luxora.demo`}</small>
+          <button type="button" onClick={handleLogout}>Sign Out</button>
+        </div>
+      </aside>
+      {isOpen && <button className="dashboard-overlay" onClick={() => setIsOpen(false)} type="button" aria-label="Close dashboard menu" />}
+    </>
   )
 }

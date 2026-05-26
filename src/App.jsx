@@ -1,3 +1,4 @@
+import { Navigate, Route, Routes } from 'react-router-dom'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import HeroSection from './components/sections/HeroSection'
@@ -15,6 +16,7 @@ import ListingsPage from './pages/ListingsPage'
 import LoginPage from './pages/LoginPage'
 import PropertyDetailsPage from './pages/PropertyDetailsPage'
 import RegisterPage from './pages/RegisterPage'
+import { ProtectedRoute } from './hooks/useAuthGuard'
 import './App.css'
 
 function HomePage() {
@@ -35,23 +37,20 @@ function HomePage() {
 }
 
 function App() {
-  const path = window.location.pathname
-  const route = path.replace(/\/$/, '') || '/'
-
-  if (route === '/listings') return <ListingsPage />
-  if (route === '/agents') return <AgentsPage />
-  if (route.startsWith('/property/')) return <PropertyDetailsPage />
-  if (route === '/auth/login') return <LoginPage />
-  if (route === '/auth/register') return <RegisterPage />
-  if (route === '/auth/forgot-password') return <ForgotPasswordPage />
-  if (route.startsWith('/dashboard/user')) return <DashboardPage variant="user" />
-  if (route.startsWith('/dashboard/agent')) return <DashboardPage variant="agent" />
-  if (route.startsWith('/dashboard/admin')) return <DashboardPage variant="admin" />
-
   return (
-    <main className="app-shell">
-      <HomePage />
-    </main>
+    <Routes>
+      <Route path="/" element={<main className="app-shell"><HomePage /></main>} />
+      <Route path="/listings" element={<ListingsPage />} />
+      <Route path="/agents" element={<AgentsPage />} />
+      <Route path="/property/:id" element={<PropertyDetailsPage />} />
+      <Route path="/auth/login" element={<LoginPage />} />
+      <Route path="/auth/register" element={<RegisterPage />} />
+      <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/dashboard/user/*" element={<ProtectedRoute roles={['user', 'agent', 'admin']}><DashboardPage variant="user" /></ProtectedRoute>} />
+      <Route path="/dashboard/agent/*" element={<ProtectedRoute roles={['agent', 'admin']}><DashboardPage variant="agent" /></ProtectedRoute>} />
+      <Route path="/dashboard/admin/*" element={<ProtectedRoute roles={['admin']}><DashboardPage variant="admin" /></ProtectedRoute>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 

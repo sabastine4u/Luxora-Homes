@@ -1,6 +1,9 @@
+import { Link } from 'react-router-dom'
 import DashboardSidebar from '../components/dashboard/DashboardSidebar'
 import Icon from '../components/common/Icon'
 import { listingProperties } from '../data/marketplace'
+import { useAuth } from '../context/AuthContext'
+import { useFavoriteProperties } from '../hooks/useSocialHooks'
 
 const content = {
   user: {
@@ -44,8 +47,14 @@ const dashboardExtras = {
 }
 
 export default function DashboardPage({ variant = 'user' }) {
+  const { user } = useAuth()
+  const { favoriteProperties, recentProperties, viewings, messages } = useFavoriteProperties()
   const data = content[variant]
   const extras = dashboardExtras[variant]
+  const dashboardProperties = variant === 'user' ? (favoriteProperties.length ? favoriteProperties : listingProperties.slice(0, 4)) : listingProperties.slice(0, 4)
+  const dynamicStats = variant === 'user'
+    ? [['Saved Properties', favoriteProperties.length.toString(), '+live'], ['Recently Viewed', recentProperties.length.toString(), '+live'], ['Messages', messages.length.toString(), '+live'], ['Upcoming Viewings', viewings.length.toString(), '+live']]
+    : data.stats
 
   return (
     <main className="dashboard-shell">
@@ -53,13 +62,13 @@ export default function DashboardPage({ variant = 'user' }) {
       <section className="dashboard-main">
         <div className="dashboard-header">
           <div>
-            <h1>{data.title}</h1>
-            <p>{data.subtitle}</p>
+            <h1>{variant === 'user' && user?.name ? `Welcome back, ${user.name.split(' ')[0]}` : data.title}</h1>
+            <p>{user?.name ? `Signed in as ${user.name}. ${data.subtitle}` : data.subtitle}</p>
           </div>
-          <a className="btn btn-primary" href="/listings">{variant === 'agent' ? 'Add New Listing' : 'Explore Properties'}</a>
+          <Link className="btn btn-primary" to="/listings">{variant === 'agent' ? 'Add New Listing' : 'Explore Properties'}</Link>
         </div>
         <div className="dashboard-stats">
-          {data.stats.map(([label, value, change]) => (
+          {dynamicStats.map(([label, value, change]) => (
             <article className="dashboard-card" key={label}>
               <span className="dashboard-icon"><Icon name="star" /></span>
               <strong>{value}</strong>
@@ -70,14 +79,14 @@ export default function DashboardPage({ variant = 'user' }) {
         </div>
         <div className="dashboard-grid">
           <article className="dashboard-panel wide-panel">
-            <div className="panel-heading"><h2>{variant === 'agent' ? 'My Listings' : variant === 'admin' ? 'Recent Users' : 'Saved Properties'}</h2><a href="/listings">View All</a></div>
+            <div className="panel-heading"><h2>{variant === 'agent' ? 'My Listings' : variant === 'admin' ? 'Recent Users' : 'Saved Properties'}</h2><Link to="/listings">View All</Link></div>
             <div className="compact-list">
-              {listingProperties.slice(0, 4).map((property) => (
-                <a href={`/property/${property.id}`} className="compact-property" key={property.id}>
+              {dashboardProperties.map((property) => (
+                <Link to={`/property/${property.id}`} className="compact-property" key={property.id}>
                   <img src={property.image} alt={property.title} />
                   <div><h3>{property.title}</h3><p>{property.location}</p></div>
                   <strong>{property.type === 'buy' ? 'Sale' : property.type === 'lease' ? 'Lease' : 'Rent'}</strong>
-                </a>
+                </Link>
               ))}
             </div>
           </article>
@@ -90,9 +99,9 @@ export default function DashboardPage({ variant = 'user' }) {
         </div>
         <div className="dashboard-grid lower-grid">
           <article className="dashboard-panel">
-            <div className="panel-heading"><h2>{extras.secondaryTitle}</h2><a href={`/dashboard/${variant}`}>Manage</a></div>
+            <div className="panel-heading"><h2>{extras.secondaryTitle}</h2><Link to={`/dashboard/${variant}`}>Manage</Link></div>
             <div className="task-list">
-              {extras.secondary.map(([primary, secondary, meta]) => (
+              {(variant === 'user' && viewings.length ? viewings.map((viewing) => [viewing.propertyTitle, viewing.date, viewing.time]) : extras.secondary).map(([primary, secondary, meta]) => (
                 <div key={`${primary}-${meta}`}>
                   <span><Icon name={variant === 'admin' ? 'check' : 'calendar'} /></span>
                   <div><h3>{primary}</h3><p>{secondary}</p></div>
@@ -102,7 +111,7 @@ export default function DashboardPage({ variant = 'user' }) {
             </div>
           </article>
           <article className="dashboard-panel wide-panel">
-            <div className="panel-heading"><h2>{extras.tableTitle}</h2><a href={`/dashboard/${variant}`}>Open</a></div>
+            <div className="panel-heading"><h2>{extras.tableTitle}</h2><Link to={`/dashboard/${variant}`}>Open</Link></div>
             <div className="dashboard-table">
               {extras.tableRows.map(([name, detail, status]) => (
                 <div key={name}>

@@ -34,6 +34,16 @@ export default function Footer() {
           </div>
         ))}
       </div>
+      <div className="container footer-newsletter">
+        <div>
+          <h3>Stay ahead of the market</h3>
+          <p>Get verified listings, price alerts, and agent insights in your inbox.</p>
+        </div>
+        <form onSubmit={(event) => event.preventDefault()}>
+          <input type="email" placeholder="Email address" />
+          <button className="btn btn-primary" type="submit">Subscribe</button>
+        </form>
+      </div>
       <div className="container footer-bottom">
         <span>2026 Luxora Homes. All rights reserved.</span>
         <span>Designed for verified property discovery.</span>

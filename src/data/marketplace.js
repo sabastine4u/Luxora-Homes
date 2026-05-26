@@ -7,7 +7,7 @@ export const navLinks = [
   {
     name: 'Rent',
     href: '/listings',
-    submenu: ['Apartments', 'Houses', 'Short-let', 'Shared'],
+    submenu: ['Apartments', 'Houses', 'Short-let', 'Shared', 'Warehouses', 'Office Spaces'],
   },
   { name: 'New Developments', href: '/listings' },
   { name: 'Agents', href: '/agents' },
