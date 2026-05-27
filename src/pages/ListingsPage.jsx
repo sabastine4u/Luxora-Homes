@@ -4,12 +4,13 @@ import Footer from '../components/layout/Footer'
 import Navbar from '../components/layout/Navbar'
 import PropertyFilters from '../components/filters/PropertyFilters'
 import PropertyCard from '../components/property/PropertyCard'
-import { searchProperties } from '../api/marketplaceApi'
+import { useListings } from '../context/ListingContext'
 import { resolveCategoryValues } from '../data/marketplace'
 
 const labelFromParam = (value = '') => value.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 
 export default function ListingsPage() {
+  const { searchListings } = useListings()
   const [searchParams, setSearchParams] = useSearchParams()
   const routeType = ['buy', 'rent', 'lease'].includes(searchParams.get('type')) ? searchParams.get('type') : 'all'
   const routeCategory = searchParams.get('category')
@@ -42,17 +43,16 @@ export default function ListingsPage() {
     queueMicrotask(() => {
       if (isActive) setIsLoading(true)
     })
-    searchProperties({ ...filters, listingType })
-      .then((results) => {
-        if (isActive) setProperties(results)
-      })
-      .finally(() => {
-        if (isActive) setIsLoading(false)
-      })
+    const results = searchListings({ ...filters, listingType })
+    queueMicrotask(() => {
+      if (!isActive) return
+      setProperties(results)
+      setIsLoading(false)
+    })
     return () => {
       isActive = false
     }
-  }, [filters, listingType])
+  }, [filters, listingType, searchListings])
 
   const handleFiltersChange = useCallback((nextFilters) => {
     setFilters(nextFilters)

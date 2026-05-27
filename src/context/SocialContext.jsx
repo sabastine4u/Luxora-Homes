@@ -62,6 +62,34 @@ export function SocialProvider({ children }) {
     })
   }, [persist])
 
+  const markMessageRead = useCallback((id) => {
+    setMessages((items) => {
+      const next = items.map((item) => (item.id === id ? { ...item, isRead: true } : item))
+      persist({ messages: next })
+      return next
+    })
+  }, [persist])
+
+  const updateMessageStatus = useCallback((id, status) => {
+    setMessages((items) => {
+      const next = items.map((item) => (item.id === id ? { ...item, status } : item))
+      persist({ messages: next })
+      return next
+    })
+  }, [persist])
+
+  const addMessageReply = useCallback((id, reply) => {
+    setMessages((items) => {
+      const next = items.map((item) => (
+        item.id === id
+          ? { ...item, replies: [{ id: `reply-${Date.now()}`, createdAt: new Date().toISOString(), ...reply }, ...(item.replies || [])], isRead: true }
+          : item
+      ))
+      persist({ messages: next })
+      return next
+    })
+  }, [persist])
+
   const isFavorite = useCallback((id) => favoriteIds.includes(id), [favoriteIds])
 
   const value = useMemo(() => ({
@@ -73,8 +101,11 @@ export function SocialProvider({ children }) {
     trackRecent,
     addViewing,
     addMessage,
+    markMessageRead,
+    updateMessageStatus,
+    addMessageReply,
     isFavorite,
-  }), [addMessage, addViewing, favoriteIds, isFavorite, messages, recentIds, toggleFavorite, trackRecent, viewings])
+  }), [addMessage, addMessageReply, addViewing, favoriteIds, isFavorite, markMessageRead, messages, recentIds, toggleFavorite, trackRecent, updateMessageStatus, viewings])
 
   return <SocialContext.Provider value={value}>{children}</SocialContext.Provider>
 }

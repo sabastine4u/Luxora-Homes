@@ -1,20 +1,25 @@
 import { useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useListings } from '../../context/ListingContext'
+import { useSocial } from '../../context/SocialContext'
 import Icon from '../common/Icon'
 
 const nav = {
-  user: ['Overview', 'Saved Properties', 'Recently Viewed', 'Notifications', 'Saved Searches', 'Viewings', 'Profile Settings'],
-  agent: ['Overview', 'Add Listing', 'My Listings', 'Messages', 'Appointments', 'Leads', 'Analytics'],
-  admin: ['Overview', 'Users', 'Properties', 'Agents', 'Reports', 'Transactions', 'Settings'],
+  user: ['Overview', 'Saved Properties', 'Recently Viewed', 'Notifications', 'Saved Searches', 'Viewings', 'Profile Settings', 'Notification Settings'],
+  agent: ['Overview', 'Add Listing', 'My Listings', 'Messages', 'Appointments', 'Leads', 'Analytics', 'Profile Settings', 'Notification Settings'],
+  admin: ['Overview', 'Users', 'Properties', 'Agents', 'Reports', 'Transactions', 'Profile Settings', 'Notification Settings'],
 }
 
 export default function DashboardSidebar({ variant }) {
   const { user, logout } = useAuth()
+  const { reports } = useListings()
+  const { messages } = useSocial()
   const navigate = useNavigate()
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
   const route = location.pathname
+  const unreadInquiries = messages.filter((message) => !message.isRead).length
 
   const handleLogout = () => {
     logout()
@@ -32,7 +37,13 @@ export default function DashboardSidebar({ variant }) {
             const slug = item === 'Overview' ? '' : `/${item.toLowerCase().replaceAll(' ', '-')}`
             const href = `/dashboard/${variant}${slug}`
             const isActive = index === 0 ? route === `/dashboard/${variant}` : route.includes(slug)
-            return <NavLink className={isActive ? 'is-active' : ''} to={href} key={item}>{item}{['Messages', 'Notifications', 'Reports'].includes(item) && <span>3</span>}</NavLink>
+            const count = variant === 'agent' && ['Messages', 'Leads'].includes(item)
+              ? unreadInquiries
+              : variant === 'user' && item === 'Notifications'
+                ? unreadInquiries || 3
+                : variant === 'admin' && item === 'Reports' ? reports.filter((report) => report.status === 'Open').length
+                : item === 'Notifications' ? 3 : 0
+            return <NavLink className={isActive ? 'is-active' : ''} to={href} key={item}>{item}{count > 0 && <span>{count}</span>}</NavLink>
           })}
         </nav>
         <div className="dashboard-user">

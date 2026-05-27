@@ -4,8 +4,8 @@ import { createViewing, getProperty, submitLead } from '../api/marketplaceApi'
 import Icon from '../components/common/Icon'
 import Footer from '../components/layout/Footer'
 import Navbar from '../components/layout/Navbar'
-import { listingProperties } from '../data/marketplace'
 import { useAuth } from '../context/AuthContext'
+import { reportReasons, useListings } from '../context/ListingContext'
 import { useUI } from '../context/UIContext'
 import { useFavoriteProperties } from '../hooks/useSocialHooks'
 
@@ -14,6 +14,7 @@ const formatPrice = (price) => new Intl.NumberFormat('en-NG', { style: 'currency
 export default function PropertyDetailsPage() {
   const { id } = useParams()
   const { isAuthenticated, user } = useAuth()
+  const { allListings, getListing, reportListing } = useListings()
   const { notify } = useUI()
   const { addMessage, addViewing, isFavorite, toggleFavorite, trackRecent } = useFavoriteProperties()
   const [property, setProperty] = useState(null)
@@ -22,6 +23,8 @@ export default function PropertyDetailsPage() {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [isContactOpen, setIsContactOpen] = useState(false)
+  const [isReportOpen, setIsReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState(reportReasons[0])
   const [contactForm, setContactForm] = useState({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '', message: '' })
 
   useEffect(() => {
@@ -29,15 +32,16 @@ export default function PropertyDetailsPage() {
     queueMicrotask(() => {
       if (isActive) setIsLoading(true)
     })
-    getProperty(id)
-      .then((result) => {
+    const storedProperty = getListing(id)
+    const loadProperty = storedProperty ? Promise.resolve(storedProperty) : getProperty(id)
+    loadProperty.then((result) => {
         if (!isActive) return
         setProperty(result)
         setContactForm((form) => ({ ...form, message: `I am interested in ${result.title}.` }))
         trackRecent(result.id)
       })
       .catch(() => {
-        if (isActive) setProperty(listingProperties[0])
+        if (isActive) setProperty(allListings[0])
       })
       .finally(() => {
         if (isActive) setIsLoading(false)
@@ -45,7 +49,7 @@ export default function PropertyDetailsPage() {
     return () => {
       isActive = false
     }
-  }, [id, trackRecent])
+  }, [allListings, getListing, id, trackRecent])
 
   if (isLoading || !property) {
     return (
@@ -57,8 +61,8 @@ export default function PropertyDetailsPage() {
     )
   }
 
-  const related = listingProperties.filter((item) => item.id !== property.id && item.category === property.category).slice(0, 3)
-    .concat(listingProperties.filter((item) => item.id !== property.id && item.category !== property.category).slice(0, 3))
+  const related = allListings.filter((item) => item.id !== property.id && item.category === property.category).slice(0, 3)
+    .concat(allListings.filter((item) => item.id !== property.id && item.category !== property.category).slice(0, 3))
     .slice(0, 3)
   const saved = isFavorite(property.id)
   const gallery = property.images?.length ? property.images : [property.image]
@@ -69,7 +73,18 @@ export default function PropertyDetailsPage() {
       notify('Sign in before messaging an agent.', 'warning')
       return
     }
-    const lead = await submitLead({ ...contactForm, propertyId: property.id, agent: property.agent.name })
+    const lead = await submitLead({
+      seekerName: contactForm.name,
+      name: contactForm.name,
+      email: contactForm.email,
+      phone: contactForm.phone,
+      message: contactForm.message,
+      propertyId: property.id,
+      propertyTitle: property.title,
+      propertyReference: `${property.title} (${property.id})`,
+      agent: property.agent.name,
+      owner: property.agent.name,
+    })
     addMessage(lead)
     setIsContactOpen(false)
     notify('Message sent to the agent.')
@@ -83,6 +98,30 @@ export default function PropertyDetailsPage() {
     const viewing = await createViewing({ propertyId: property.id, propertyTitle: property.title, agent: property.agent.name })
     addViewing(viewing)
     notify('Viewing scheduled in your dashboard.')
+  }
+
+  const handleReportListing = () => {
+    if (!isAuthenticated) {
+      notify('Sign in to report a listing.', 'warning')
+      return
+    }
+    setIsReportOpen(true)
+  }
+
+  const handleReportSubmit = (event) => {
+    event.preventDefault()
+    const result = reportListing(property.id, {
+      reason: reportReason,
+      reporterId: user?.id || user?.email,
+      reporterName: user?.name,
+      reporterEmail: user?.email,
+    })
+    if (result?.duplicate) {
+      notify('You have already reported this listing.', 'warning')
+      return
+    }
+    setIsReportOpen(false)
+    notify('Listing report sent to admin moderation.')
   }
 
   return (
@@ -187,6 +226,7 @@ export default function PropertyDetailsPage() {
               toggleFavorite(property.id)
               notify(saved ? 'Removed from saved homes.' : 'Saved to your dashboard.')
             }} type="button">{saved ? 'Saved Property' : 'Save Property'}</button>
+            <button className="btn btn-ghost" onClick={handleReportListing} type="button">Report Listing</button>
             <div className="agent-contact-meta">
               <a href="tel:+2348001234567"><Icon name="phone" /> +234 800 123 4567</a>
               <a href="mailto:agent@luxora.demo"><Icon name="mail" /> agent@luxora.demo</a>
@@ -201,9 +241,20 @@ export default function PropertyDetailsPage() {
             <h2>Contact {property.agent.name}</h2>
             <label>Name<input value={contactForm.name} onChange={(event) => setContactForm({ ...contactForm, name: event.target.value })} placeholder="Your name" required /></label>
             <label>Email<input type="email" value={contactForm.email} onChange={(event) => setContactForm({ ...contactForm, email: event.target.value })} placeholder="you@example.com" required /></label>
-            <label>Phone<input value={contactForm.phone} onChange={(event) => setContactForm({ ...contactForm, phone: event.target.value })} placeholder="+234 ..." /></label>
-            <label>Message<textarea rows="4" value={contactForm.message} onChange={(event) => setContactForm({ ...contactForm, message: event.target.value })} /></label>
+            <label>Phone<input value={contactForm.phone} onChange={(event) => setContactForm({ ...contactForm, phone: event.target.value })} placeholder="+234 ..." required /></label>
+            <label>Message<textarea rows="4" value={contactForm.message} onChange={(event) => setContactForm({ ...contactForm, message: event.target.value })} required /></label>
             <button className="btn btn-primary" type="submit">Send Message</button>
+          </form>
+        </div>
+      )}
+      {isReportOpen && (
+        <div className="contact-modal" role="dialog" aria-modal="true">
+          <form className="contact-form" onSubmit={handleReportSubmit}>
+            <button className="modal-close" onClick={() => setIsReportOpen(false)} type="button">Close</button>
+            <h2>Report Listing</h2>
+            <label>Listing<input value={property.title} readOnly /></label>
+            <label>Reason<select value={reportReason} onChange={(event) => setReportReason(event.target.value)}>{reportReasons.map((reason) => <option key={reason}>{reason}</option>)}</select></label>
+            <button className="btn btn-primary" type="submit">Submit Report</button>
           </form>
         </div>
       )}

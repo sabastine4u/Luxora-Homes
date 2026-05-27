@@ -2689,7 +2689,8 @@ select {
 }
 
 .contact-form input,
-.contact-form textarea {
+.contact-form textarea,
+.contact-form select {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   color: var(--text);

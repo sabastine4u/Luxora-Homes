@@ -105,7 +105,10 @@ export async function submitLead(payload) {
   return {
     id: `lead-${Date.now()}`,
     createdAt: new Date().toISOString(),
-    status: 'sent',
+    timestamp: new Date().toISOString(),
+    status: 'New',
+    isRead: false,
+    replies: [],
     ...payload,
   }
 }

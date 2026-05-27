@@ -1,10 +1,11 @@
-import { listingProperties } from '../data/marketplace'
+import { useListings } from '../context/ListingContext'
 import { useSocial } from '../context/SocialContext'
 
 export function useFavoriteProperties() {
   const social = useSocial()
-  const favoriteProperties = listingProperties.filter((property) => social.favoriteIds.includes(property.id))
-  const recentProperties = listingProperties.filter((property) => social.recentIds.includes(property.id))
+  const { allListings } = useListings()
+  const favoriteProperties = allListings.filter((property) => social.favoriteIds.includes(property.id))
+  const recentProperties = allListings.filter((property) => social.recentIds.includes(property.id))
 
   return {
     ...social,

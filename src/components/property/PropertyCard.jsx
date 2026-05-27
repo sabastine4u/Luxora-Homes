@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { reportReasons, useListings } from '../../context/ListingContext'
 import { useFavoriteProperties } from '../../hooks/useSocialHooks'
 import { useUI } from '../../context/UIContext'
 import Button from '../common/Button'
@@ -14,10 +16,13 @@ const formatPrice = (price) =>
   }).format(price)
 
 export default function PropertyCard({ property, variant = 'default' }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
+  const { reportListing } = useListings()
   const { isFavorite, toggleFavorite } = useFavoriteProperties()
   const { notify } = useUI()
   const saved = isFavorite(property.id)
+  const [isReportOpen, setIsReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState(reportReasons[0])
 
   const handleFavorite = () => {
     if (!isAuthenticated) {
@@ -26,6 +31,31 @@ export default function PropertyCard({ property, variant = 'default' }) {
     }
     toggleFavorite(property.id)
     notify(saved ? 'Removed from saved homes.' : 'Saved to your dashboard.')
+  }
+
+  const handleReport = (event) => {
+    event.preventDefault()
+    if (!isAuthenticated) {
+      notify('Sign in to report a listing.', 'warning')
+      return
+    }
+    setIsReportOpen(true)
+  }
+
+  const handleReportSubmit = (event) => {
+    event.preventDefault()
+    const result = reportListing(property.id, {
+      reason: reportReason,
+      reporterId: user?.id || user?.email,
+      reporterName: user?.name,
+      reporterEmail: user?.email,
+    })
+    if (result?.duplicate) {
+      notify('You have already reported this listing.', 'warning')
+      return
+    }
+    setIsReportOpen(false)
+    notify('Listing report sent to admin moderation.')
   }
 
   return (
@@ -47,6 +77,7 @@ export default function PropertyCard({ property, variant = 'default' }) {
         <div className="quick-actions">
           <Link to={`/property/${property.id}`}><Icon name="eye" /> Quick View</Link>
           <Link to="/dashboard/user/viewings"><Icon name="calendar" /> Schedule</Link>
+          <a href={`/property/${property.id}`} onClick={handleReport}><Icon name="bell" /> Report</a>
         </div>
         <span className="property-category">{property.category}</span>
       </div>
@@ -82,6 +113,17 @@ export default function PropertyCard({ property, variant = 'default' }) {
         </div>
         <Button variant="outline" href={`/property/${property.id}`} className="property-cta">View Details</Button>
       </div>
+      {isReportOpen && (
+        <div className="contact-modal" role="dialog" aria-modal="true">
+          <form className="contact-form" onSubmit={handleReportSubmit}>
+            <button className="modal-close" onClick={() => setIsReportOpen(false)} type="button">Close</button>
+            <h2>Report Listing</h2>
+            <label>Listing<input value={property.title} readOnly /></label>
+            <label>Reason<select value={reportReason} onChange={(event) => setReportReason(event.target.value)}>{reportReasons.map((reason) => <option key={reason}>{reason}</option>)}</select></label>
+            <button className="btn btn-primary" type="submit">Submit Report</button>
+          </form>
+        </div>
+      )}
     </article>
   )
 }
