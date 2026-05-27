@@ -1,4 +1,4 @@
-import { listingProperties } from '../data/marketplace'
+import { listingProperties, resolveCategoryValues } from '../data/marketplace'
 
 const wait = (ms = 450) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -66,14 +66,14 @@ export async function searchProperties(filters = {}) {
   await wait(350)
   const query = normalize(filters.query)
   const type = filters.listingType || 'all'
-  const selectedTypes = filters.propertyTypes || []
+  const selectedTypes = (filters.propertyTypes || []).flatMap(resolveCategoryValues)
   const selectedAmenities = filters.amenities || []
   const minBeds = parseMinimum(filters.beds)
   const minBaths = parseMinimum(filters.baths)
   const maxPrice = Number(filters.price || 100) * 1000000
 
   let results = listingProperties.filter((property) => {
-    const searchable = normalize(`${property.title} ${property.location} ${property.category} ${property.amenities.join(' ')}`)
+    const searchable = normalize(`${property.title} ${property.location} ${property.category} ${property.amenities.join(' ')} ${property.furnished} ${property.availabilityStatus}`)
     const matchesQuery = !query || searchable.includes(query)
     const matchesType = type === 'all' || property.type === type
     const matchesCategory = selectedTypes.length === 0 || selectedTypes.includes(property.category)

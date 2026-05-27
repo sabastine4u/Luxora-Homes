@@ -5,20 +5,37 @@ import Navbar from '../components/layout/Navbar'
 import PropertyFilters from '../components/filters/PropertyFilters'
 import PropertyCard from '../components/property/PropertyCard'
 import { searchProperties } from '../api/marketplaceApi'
+import { resolveCategoryValues } from '../data/marketplace'
+
+const labelFromParam = (value = '') => value.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
 
 export default function ListingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const defaultType = searchParams.get('type') === 'buy' || searchParams.get('type') === 'rent' ? searchParams.get('type') : 'all'
-  const defaultCategory = searchParams.get('category')?.replaceAll('-', ' ')
-  const [listingType, setListingType] = useState(defaultType)
+  const routeType = ['buy', 'rent', 'lease'].includes(searchParams.get('type')) ? searchParams.get('type') : 'all'
+  const routeCategory = searchParams.get('category')
+  const routeQuery = searchParams.get('q') || ''
+  const defaultCategory = routeCategory ? labelFromParam(routeCategory) : ''
+  const [listingType, setListingType] = useState(routeType)
   const [filters, setFilters] = useState({
-    query: searchParams.get('q') || '',
-    propertyTypes: defaultCategory ? [defaultCategory.replace(/\b\w/g, (letter) => letter.toUpperCase())] : [],
+    query: routeQuery,
+    propertyTypes: defaultCategory ? [defaultCategory] : [],
   })
   const [properties, setProperties] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid')
   const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setListingType(routeType)
+      setFilters((current) => ({
+        ...current,
+        query: routeQuery,
+        propertyTypes: defaultCategory ? [defaultCategory] : [],
+      }))
+      setPage(1)
+    })
+  }, [defaultCategory, routeQuery, routeType])
 
   useEffect(() => {
     let isActive = true
@@ -43,6 +60,7 @@ export default function ListingsPage() {
     const nextParams = new URLSearchParams()
     if (listingType !== 'all') nextParams.set('type', listingType)
     if (nextFilters.query) nextParams.set('q', nextFilters.query)
+    if (nextFilters.propertyTypes?.length === 1) nextParams.set('category', nextFilters.propertyTypes[0].toLowerCase().replaceAll(' ', '-'))
     setSearchParams(nextParams, { replace: true })
   }, [listingType, setSearchParams])
 
@@ -54,6 +72,10 @@ export default function ListingsPage() {
     else nextParams.set('type', value)
     setSearchParams(nextParams, { replace: true })
   }
+
+  const listingSummary = filters.propertyTypes?.length
+    ? `${properties.length} ${resolveCategoryValues(filters.propertyTypes[0]).join(', ')} listings`
+    : `${properties.length} verified properties`
 
   const pageSize = 6
   const totalPages = Math.max(1, Math.ceil(properties.length / pageSize))
@@ -81,7 +103,7 @@ export default function ListingsPage() {
           </div>
         </div>
       </section>
-      <PropertyFilters totalResults={properties.length} initialFilters={filters} onFiltersChange={handleFiltersChange} viewMode={viewMode} onViewModeChange={setViewMode} />
+      <PropertyFilters key={`${routeType}-${routeCategory}-${routeQuery}`} totalResults={properties.length} initialFilters={filters} onFiltersChange={handleFiltersChange} viewMode={viewMode} onViewModeChange={setViewMode} />
       <section className="section">
         <div className="container listings-layout">
           <aside className="side-panel">
@@ -93,7 +115,7 @@ export default function ListingsPage() {
           <div className={`listings-results ${viewMode === 'list' ? 'is-list' : ''}`}>
             <div className="results-toolbar">
               <div>
-                <h2>{properties.length} verified properties</h2>
+                <h2>{listingSummary}</h2>
                 <p>Showing page {page} of {totalPages}</p>
               </div>
               <a className="btn btn-outline" href="/property/1">Map Preview</a>

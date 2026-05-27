@@ -57,14 +57,11 @@ export default function PropertyDetailsPage() {
     )
   }
 
-  const related = listingProperties.filter((item) => item.id !== property.id).slice(0, 3)
+  const related = listingProperties.filter((item) => item.id !== property.id && item.category === property.category).slice(0, 3)
+    .concat(listingProperties.filter((item) => item.id !== property.id && item.category !== property.category).slice(0, 3))
+    .slice(0, 3)
   const saved = isFavorite(property.id)
-  const gallery = [
-    property.image,
-    'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=900&auto=format&fit=crop&q=70',
-    'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=900&auto=format&fit=crop&q=70',
-    'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=900&auto=format&fit=crop&q=70',
-  ]
+  const gallery = property.images?.length ? property.images : [property.image]
 
   const handleContactSubmit = async (event) => {
     event.preventDefault()
@@ -124,8 +121,8 @@ export default function PropertyDetailsPage() {
               <span><Icon name="bath" /> {property.baths} Bathrooms</span>
               <span><Icon name="area" /> {property.sqft.toLocaleString()} sqft</span>
               <span><Icon name="car" /> 3 Parking</span>
-              <span><Icon name="calendar" /> Built 2022</span>
-              <span><Icon name="eye" /> 1,234 Views</span>
+              <span><Icon name="calendar" /> {property.moveInDate}</span>
+              <span><Icon name="eye" /> {property.availabilityStatus}</span>
             </div>
             <div className="detail-tabs">
               {['overview', 'amenities', 'location', 'floor plan'].map((tab) => <button className={activeTab === tab ? 'is-active' : ''} onClick={() => setActiveTab(tab)} type="button" key={tab}>{tab}</button>)}
@@ -135,7 +132,7 @@ export default function PropertyDetailsPage() {
                 <h2>Property Overview</h2>
                 <p>
                   This premium {property.category.toLowerCase()} combines refined finishes, practical spaces, and a sought-after address.
-                  The listing has been reviewed for accuracy and is represented by a verified Luxora agent.
+                  The listing is {property.furnished.toLowerCase()}, currently marked {property.availabilityStatus.toLowerCase()}, and represented by a verified Luxora agent.
                 </p>
                 <h2>Key Features</h2>
                 <div className="amenity-list">{['Floor-to-ceiling windows', 'Private terrace', 'Smart home system', 'Chef kitchen', 'Wine cellar', 'Home theater'].map((feature) => <span key={feature}><Icon name="check" /> {feature}</span>)}</div>
@@ -182,7 +179,14 @@ export default function PropertyDetailsPage() {
             <p>Verified Property Consultant</p>
             <button className="btn btn-primary" onClick={handleViewing} type="button">Schedule Viewing</button>
             <button className="btn btn-outline" onClick={() => setIsContactOpen(true)} type="button">Message Agent</button>
-            <button className={`btn btn-ghost ${saved ? 'is-active' : ''}`} onClick={() => { toggleFavorite(property.id); notify(saved ? 'Removed from saved homes.' : 'Saved to your dashboard.') }} type="button">{saved ? 'Saved Property' : 'Save Property'}</button>
+            <button className={`btn btn-ghost ${saved ? 'is-active' : ''}`} onClick={() => {
+              if (!isAuthenticated) {
+                notify('Sign in to save properties.', 'warning')
+                return
+              }
+              toggleFavorite(property.id)
+              notify(saved ? 'Removed from saved homes.' : 'Saved to your dashboard.')
+            }} type="button">{saved ? 'Saved Property' : 'Save Property'}</button>
             <div className="agent-contact-meta">
               <a href="tel:+2348001234567"><Icon name="phone" /> +234 800 123 4567</a>
               <a href="mailto:agent@luxora.demo"><Icon name="mail" /> agent@luxora.demo</a>

@@ -1,4 +1,5 @@
-import { categories } from '../../data/marketplace'
+import { Link } from 'react-router-dom'
+import { categories, normalizeCategory } from '../../data/marketplace'
 
 export default function PropertyCategories() {
   return (
@@ -11,14 +12,14 @@ export default function PropertyCategories() {
         </div>
         <div className="category-grid">
           {categories.map(([name, count, image]) => (
-            <a className="image-tile category-tile" href="/listings" key={name}>
+            <Link className="image-tile category-tile" to={`/listings?category=${normalizeCategory(name)}`} key={name}>
               <img src={image} alt={`${name} properties`} loading="lazy" />
               <div>
                 <span className="tile-icon">{name.slice(0, 1)}</span>
                 <h3>{name}</h3>
                 <p>{count} listings</p>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </div>

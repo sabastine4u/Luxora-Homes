@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import Icon from '../common/Icon'
 
-const propertyTypes = ['Apartment', 'House', 'Villa', 'Penthouse', 'Studio', 'Duplex', 'Commercial', 'Land']
-const amenities = ['Parking', 'Pool', 'Gym', 'Security', 'Furnished', 'AC', 'Garden', 'Elevator', 'Balcony', 'WiFi']
+const propertyTypes = ['Apartment', 'Duplex', 'Studio Apartment', 'Mini Flat', 'Self-contained', 'Short-let', 'Student Housing', 'Affordable Rental', 'Family Home', 'Villa', 'Penthouse', 'Commercial', 'Warehouse', 'Land']
+const amenities = ['Parking', 'Pool', 'Gym', 'Security', 'Furnished', 'AC', 'Garden', 'Elevator', 'Balcony', 'WiFi', 'Water', 'Backup Power']
 
 export default function PropertyFilters({ totalResults, initialFilters = {}, onFiltersChange, viewMode, onViewModeChange }) {
   const [isExpanded, setIsExpanded] = useState(false)

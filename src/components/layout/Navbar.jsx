@@ -90,7 +90,7 @@ export default function Navbar() {
               {link.submenu && (
                 <div className="mobile-submenu">
                   {link.submenu.map((item) => (
-                    <Link to={`/listings?category=${item.toLowerCase().replaceAll(' ', '-')}`} key={item} onClick={() => setIsOpen(false)}>
+                    <Link to={`/listings?type=${link.name.toLowerCase()}&category=${item.toLowerCase().replaceAll(' ', '-')}`} key={item} onClick={() => setIsOpen(false)}>
                       {item}
                     </Link>
                   ))}

@@ -22,7 +22,7 @@ export function ProtectedRoute({ children, roles = [] }) {
   }
 
   if (!guard.isAllowed) {
-    return createElement(Navigate, { to: `/dashboard/${guard.redirectState.from.includes('admin') ? 'admin' : 'user'}`, replace: true })
+    return createElement(Navigate, { to: '/dashboard/user', replace: true })
   }
 
   return children

@@ -984,13 +984,18 @@ button:disabled,
   color: var(--gold-light);
 }
 
-.notification-list div {
+.notification-list div,
+.notification-list button {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 10px;
   border-radius: var(--radius);
+  border: 0;
   padding: 12px;
+  color: inherit;
+  text-align: left;
   background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
 }
 
 .notification-list span {
@@ -1009,13 +1014,18 @@ button:disabled,
 }
 
 .task-list div,
-.dashboard-table div {
+.dashboard-table div,
+.dashboard-table button {
   display: grid;
   align-items: center;
   gap: 12px;
   border-radius: var(--radius);
+  border: 0;
   padding: 12px;
+  color: inherit;
+  text-align: left;
   background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
 }
 
 .task-list div {
@@ -1049,7 +1059,8 @@ button:disabled,
   text-align: right;
 }
 
-.dashboard-table div {
+.dashboard-table div,
+.dashboard-table button {
   grid-template-columns: 1fr 1.2fr auto;
 }
 
