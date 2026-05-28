@@ -846,12 +846,16 @@ button:disabled,
   border-right: 1px solid var(--line);
   background: var(--bg-deep);
   padding: 22px;
+  overflow: hidden;
 }
 
 .dashboard-sidebar nav {
   display: grid;
   gap: 6px;
   margin-top: 30px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 16px;
 }
 
 .dashboard-sidebar nav a {
@@ -868,10 +872,47 @@ button:disabled,
 
 .dashboard-user {
   display: grid;
-  gap: 4px;
+  flex-shrink: 0;
+  gap: 12px;
   margin-top: auto;
   border-top: 1px solid var(--line);
   padding-top: 18px;
+  background: var(--bg-deep);
+}
+
+.dashboard-user-profile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.dashboard-avatar {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(216, 170, 66, 0.35);
+  border-radius: 50%;
+  color: #15140f;
+  background: var(--gold);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.dashboard-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dashboard-user strong,
+.dashboard-user small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard-user small {
@@ -884,14 +925,16 @@ button:disabled,
 }
 
 .dashboard-user button {
-  margin-top: 10px;
-  width: fit-content;
-  border: 0;
-  background: transparent;
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(255, 94, 94, 0.42);
+  border-radius: var(--radius);
+  background: rgba(255, 94, 94, 0.12);
   color: var(--danger);
   cursor: pointer;
   font: inherit;
-  padding: 0;
+  font-weight: 800;
+  padding: 0 12px;
 }
 
 .dashboard-main {
@@ -2593,6 +2636,7 @@ select {
   display: grid;
   place-items: center;
   padding: 24px;
+  overflow: hidden;
   background: rgba(8, 9, 13, 0.92);
   backdrop-filter: blur(20px);
 }
@@ -2720,12 +2764,20 @@ select {
   position: relative;
   display: grid;
   width: min(100%, 520px);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
   gap: 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 28px;
   background: var(--surface-strong);
   box-shadow: var(--shadow);
+}
+
+.contact-form > .btn:last-child {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
 }
 
 .contact-form label {

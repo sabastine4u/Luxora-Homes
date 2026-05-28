@@ -19,6 +19,15 @@ export default function DashboardSidebar({ variant }) {
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
   const route = location.pathname
+  const displayName = user?.name || (variant === 'admin' ? 'Admin' : variant === 'agent' ? 'Sarah Agent' : 'John Doe')
+  const displayEmail = user?.email || `${variant}@luxora.demo`
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
   const unreadInquiries = messages.filter((message) => !message.isRead).length
   const unreadNotifications = (notifications || []).filter((notification) => !notification.isRead).length
 
@@ -50,9 +59,16 @@ export default function DashboardSidebar({ variant }) {
           })}
         </nav>
         <div className="dashboard-user">
-          <span>{user?.name || (variant === 'admin' ? 'Admin' : variant === 'agent' ? 'Sarah Agent' : 'John Doe')}</span>
-          <small>{user?.email || `${variant}@luxora.demo`}</small>
-          <button type="button" onClick={handleLogout}>Sign Out</button>
+          <div className="dashboard-user-profile">
+            <span className="dashboard-avatar">
+              {user?.image ? <img src={user.image} alt={displayName} /> : initials}
+            </span>
+            <div>
+              <strong>{displayName}</strong>
+              <small>{displayEmail}</small>
+            </div>
+          </div>
+          <button className="dashboard-signout" type="button" onClick={handleLogout}>Sign Out</button>
         </div>
       </aside>
       {isOpen && <button className="dashboard-overlay" onClick={() => setIsOpen(false)} type="button" aria-label="Close dashboard menu" />}

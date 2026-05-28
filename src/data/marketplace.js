@@ -638,9 +638,9 @@ export const categoryAliases = {
   'family-homes': ['Family Home'],
   'family homes': ['Family Home'],
   commercial: ['Commercial'],
-  'office-space': ['Commercial'],
-  'office-spaces': ['Commercial'],
-  'office spaces': ['Commercial'],
+  'office-space': ['Commercial', 'Office Space'],
+  'office-spaces': ['Commercial', 'Office Space'],
+  'office spaces': ['Commercial', 'Office Space'],
   warehouse: ['Warehouse'],
   warehouses: ['Warehouse'],
   land: ['Land'],
@@ -670,6 +670,8 @@ export const categories = [
   ['Affordable Rentals', `${categoryCount('Affordable Rentals')}+`, 'https://images.unsplash.com/photo-1494526585095-c41746248156?w=500&auto=format&fit=crop&q=70'],
   ['Family Homes', `${categoryCount('Family Homes')}+`, 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=500&auto=format&fit=crop&q=70'],
   ['Land', `${categoryCount('Land')}+`, 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&auto=format&fit=crop&q=70'],
+  ['Warehouse', `${categoryCount('Warehouse')}+`, 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&auto=format&fit=crop&q=70'],
+  ['Office Space', `${categoryCount('Office Space')}+`, 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=70'],
 ]
 
 export const cities = [

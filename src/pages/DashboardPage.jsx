@@ -593,7 +593,7 @@ export default function DashboardPage({ variant = 'user' }) {
   const sectionRows = (() => {
     if (variant === 'user') {
       if (activeSection === 'saved-properties') return favoriteProperties.map((property) => [property.title, property.location, property.availabilityStatus])
-      if (activeSection === 'recently-viewed') return recentProperties.map((property) => [property.title, property.location, property.category])
+      if (activeSection === 'recently-viewed') return recentProperties.map((property) => [property.title, property.location, property.category, property.id])
       if (activeSection === 'saved-searches') return savedSearches.map((search) => [search.name, search.criteria.query || search.criteria.propertyTypes?.join(', ') || 'All properties', search.status, search.id])
       if (activeSection === 'compare-properties') return compareProperties.map((property) => [property.title, property.location, property.availabilityStatus, property.id])
       if (activeSection === 'messages') return relevantMessages.map((message) => [message.propertyReference || message.propertyTitle || message.propertyId, message.replies?.[0]?.message || message.message, message.isRead ? 'Read' : 'Unread', message.id])
@@ -627,6 +627,10 @@ export default function DashboardPage({ variant = 'user' }) {
   })()
 
   const handleRowAction = (row) => {
+    if (activeSection === 'recently-viewed' && row[3]) {
+      navigate(`/property/${row[3]}`)
+      return
+    }
     const key = row.join('-')
     const nextStatus = rowStatuses[key] === 'Reviewed' ? row[2] : 'Reviewed'
     setRowStatuses((items) => ({ ...items, [key]: nextStatus }))
