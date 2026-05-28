@@ -3,7 +3,7 @@ const coordinateStorageKey = 'luxora-property-coordinates'
 const presets = [
   ['banana island', [6.4478, 3.4246]],
   ['victoria island', [6.4281, 3.4219]],
-  ['ibeju-lekki', [6.4698, 3.7031]],
+  ['ibeju-lekki', [6.4333, 3.7167]],
   ['lekki', [6.4698, 3.5852]],
   ['ikoyi', [6.4541, 3.4306]],
   ['ikeja', [6.6018, 3.3515]],

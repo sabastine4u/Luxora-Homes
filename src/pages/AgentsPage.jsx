@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Button from '../components/common/Button'
 import Icon from '../components/common/Icon'
 import Footer from '../components/layout/Footer'
@@ -119,7 +120,7 @@ export default function AgentsPage() {
                   <span className="badge badge-gold"><Icon name="check" /> Verified</span>
                 </div>
                 <p className="profile-location"><Icon name="pin" /> {agent.location}</p>
-                {agency && <p className="profile-location"><Icon name="home" /> <a href={`/agency/${agency.id}`}>{agency.name}</a></p>}
+                {agency && <p className="profile-location"><Icon name="home" /> <Link to={`/agency/${agency.id}`}>{agency.name}</Link></p>}
                 <p className="profile-bio">{agent.bio}</p>
                 <div className="agent-profile-stats">
                   <span><Icon name="star" /> {averageRating} ({totalReviews})</span>

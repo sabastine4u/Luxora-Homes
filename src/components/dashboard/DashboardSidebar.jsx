@@ -14,12 +14,13 @@ const nav = {
 export default function DashboardSidebar({ variant }) {
   const { user, logout } = useAuth()
   const { reports } = useListings()
-  const { messages } = useSocial()
+  const { messages, notifications } = useSocial()
   const navigate = useNavigate()
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
   const route = location.pathname
   const unreadInquiries = messages.filter((message) => !message.isRead).length
+  const unreadNotifications = (notifications || []).filter((notification) => !notification.isRead).length
 
   const handleLogout = () => {
     logout()
@@ -42,9 +43,9 @@ export default function DashboardSidebar({ variant }) {
               : variant === 'user' && item === 'Messages'
                 ? unreadInquiries
               : variant === 'user' && item === 'Notifications'
-                ? unreadInquiries || 3
+                ? unreadNotifications || 0
                 : variant === 'admin' && item === 'Reports' ? reports.filter((report) => report.status === 'Open').length
-                : item === 'Notifications' ? 3 : 0
+                : item === 'Notifications' ? unreadNotifications || 0 : 0
             return <NavLink className={isActive ? 'is-active' : ''} to={href} key={item}>{item}{count > 0 && <span>{count}</span>}</NavLink>
           })}
         </nav>
