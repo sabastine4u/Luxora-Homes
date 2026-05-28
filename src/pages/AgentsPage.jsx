@@ -6,7 +6,7 @@ import Navbar from '../components/layout/Navbar'
 import { useAuth } from '../context/AuthContext'
 import { useContent } from '../context/ContentContext'
 import { useUI } from '../context/UIContext'
-import { directoryAgents } from '../data/marketplace'
+import { agencies, directoryAgents } from '../data/marketplace'
 
 const reviewsStorageKey = 'luxora-agent-reviews'
 const agentIdFromAgent = (agent = {}) => (agent.id || agent.email || agent.name || '').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -106,6 +106,7 @@ export default function AgentsPage() {
                 const totalReviews = agent.reviews + agentReviews.length
                 const averageRating = totalReviews ? (totalRating / totalReviews).toFixed(1) : agent.rating
                 const form = reviewForms[agentId] || { rating: '5', comment: '' }
+                const agency = agencies.find((item) => item.id === agent.agencyId)
                 return (
                   <>
               <img src={agent.image} alt={agent.name} />
@@ -118,6 +119,7 @@ export default function AgentsPage() {
                   <span className="badge badge-gold"><Icon name="check" /> Verified</span>
                 </div>
                 <p className="profile-location"><Icon name="pin" /> {agent.location}</p>
+                {agency && <p className="profile-location"><Icon name="home" /> <a href={`/agency/${agency.id}`}>{agency.name}</a></p>}
                 <p className="profile-bio">{agent.bio}</p>
                 <div className="agent-profile-stats">
                   <span><Icon name="star" /> {averageRating} ({totalReviews})</span>
@@ -130,6 +132,7 @@ export default function AgentsPage() {
                 <div className="agent-contact-row">
                   <a href={`tel:${agent.phone}`}>{agent.phone}</a>
                   <a href={`mailto:${agent.email}`}>{agent.email}</a>
+                  {agency && <Button variant="outline" href={`/agency/${agency.id}`}>Agency Profile</Button>}
                   <Button variant="outline" href={`/listings?agentId=${agentId}`}>View Listings</Button>
                   <Button href={`mailto:${agent.email}`}>Contact Agent <Icon name="arrow" /></Button>
                 </div>

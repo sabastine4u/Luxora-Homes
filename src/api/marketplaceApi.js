@@ -69,24 +69,28 @@ export async function searchProperties(filters = {}) {
   const type = filters.listingType || 'all'
   const selectedTypes = (filters.propertyTypes || []).flatMap(resolveCategoryValues)
   const selectedAmenities = filters.amenities || []
+  const selectedNearby = filters.nearbyAmenities || []
   const agentId = filters.agentId || ''
   const minBeds = parseMinimum(filters.beds)
   const minBaths = parseMinimum(filters.baths)
   const minPrice = Number(filters.minPrice || 0) * 1000000
-  const maxPrice = Number(filters.price || 100) * 1000000
+  const selectedMaxPrice = Number(filters.price ?? 65)
+  const maxPrice = selectedMaxPrice >= 65 ? Number.POSITIVE_INFINITY : selectedMaxPrice * 1000000
 
   let results = listingProperties.filter((property) => {
-    const searchable = normalize(`${property.title} ${property.location} ${property.category} ${property.amenities.join(' ')} ${property.furnished} ${property.availabilityStatus}`)
+    const nearbyValues = Object.values(property.nearbyAmenities || {}).flat()
+    const searchable = normalize(`${property.title} ${property.location} ${property.category} ${property.amenities.join(' ')} ${nearbyValues.join(' ')} ${property.furnished} ${property.availabilityStatus}`)
     const matchesQuery = !query || searchable.includes(query)
     const matchesType = type === 'all' || property.type === type
     const matchesCategory = selectedTypes.length === 0 || selectedTypes.includes(property.category)
     const matchesAmenities = selectedAmenities.every((amenity) => property.amenities.includes(amenity))
+    const matchesNearby = selectedNearby.every((amenity) => (property.nearbyAmenities?.[amenity] || []).length > 0)
     const matchesAgent = !agentId || agentIdFromAgent(property.agent) === agentId
     const matchesBeds = minBeds === 0 || property.beds >= minBeds
     const matchesBaths = minBaths === 0 || property.baths >= minBaths
     const matchesPrice = property.price >= minPrice && property.price <= maxPrice
 
-    return matchesQuery && matchesType && matchesCategory && matchesAmenities && matchesAgent && matchesBeds && matchesBaths && matchesPrice
+    return property.status !== 'Expired' && matchesQuery && matchesType && matchesCategory && matchesAmenities && matchesNearby && matchesAgent && matchesBeds && matchesBaths && matchesPrice
   })
 
   if (filters.sort === 'price-low') results = [...results].sort((a, b) => a.price - b.price)

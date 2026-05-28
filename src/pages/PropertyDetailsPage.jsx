@@ -104,6 +104,8 @@ export default function PropertyDetailsPage() {
     : [...priceHistory, { price: property.price, date: new Date().toISOString(), note: 'Current price' }]
   const videos = property.videos || {}
   const virtualTour = videoEmbedFromUrl(videos.youtubeUrl, 'youtube') || videoEmbedFromUrl(videos.vimeoUrl, 'vimeo') || videoEmbedFromUrl(videos.directVideoUrl)
+  const nearbyAmenities = property.nearbyAmenities || {}
+  const neighborhood = property.neighborhood || {}
   const monthlyRate = Number(mortgage.interestRate || 0) / 100 / 12
   const payments = Number(mortgage.loanTerm || 0) * 12
   const monthlyPayment = payments > 0
@@ -276,13 +278,17 @@ export default function PropertyDetailsPage() {
               <>
                 <h2>Location Highlights</h2>
                 <PropertyMap property={property} height={260} />
+                <div className="detail-specs">
+                  <span><Icon name="check" /> Walk Score {neighborhood.walkScore || 70}</span>
+                  <span><Icon name="check" /> Transit Score {neighborhood.transitScore || 55}</span>
+                </div>
+                {neighborhood.summary && <p className="property-description">{neighborhood.summary}</p>}
                 <div className="nearby-list">
                   {[
-                    'Schools: International School - 1.2 km',
-                    'Hospitals: General Hospital - 2.0 km',
-                    'Transit: BRT stop - 0.6 km',
-                    'Shops: Victoria Island Mall - 0.5 km',
-                    'Shops: Neighborhood market - 0.8 km',
+                    ...(nearbyAmenities.schools || []).map((item) => `Schools: ${item}`),
+                    ...(nearbyAmenities.hospitals || []).map((item) => `Hospitals: ${item}`),
+                    ...(nearbyAmenities.transit || []).map((item) => `Transit: ${item}`),
+                    ...(nearbyAmenities.shops || []).map((item) => `Shops: ${item}`),
                   ].map((place) => <span key={place}>{place}</span>)}
                 </div>
               </>
@@ -290,7 +296,11 @@ export default function PropertyDetailsPage() {
             {activeTab === 'floor plan' && (
               <>
                 <h2>Floor Plan</h2>
-                <div className="floor-plan"><Icon name="ruler" /> Duplex floor plan preview</div>
+                {property.floorPlan ? (
+                  <div className="floor-plan"><img src={property.floorPlan} alt={`${property.title} floor plan`} /></div>
+                ) : (
+                  <div className="floor-plan"><Icon name="ruler" /> Duplex floor plan preview</div>
+                )}
               </>
             )}
             {activeTab === 'virtual tour' && virtualTour && (

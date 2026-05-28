@@ -88,6 +88,7 @@ const initialListingForm = (listing) => ({
   status: listing?.status || 'Active',
   image: listing?.image || '',
   images: listing?.images?.length ? listing.images : listing?.image ? [listing.image] : [],
+  floorPlan: listing?.floorPlan || '',
   youtubeUrl: listing?.videos?.youtubeUrl || '',
   vimeoUrl: listing?.videos?.vimeoUrl || '',
   directVideoUrl: listing?.videos?.directVideoUrl || '',
@@ -175,6 +176,7 @@ function ListingForm({ amenities, categories, listing, onSubmit }) {
       amenities: form.amenities.split(',').map((item) => item.trim()).filter(Boolean),
       image: form.images[0],
       images: form.images,
+      floorPlan: form.floorPlan.trim(),
       videos: {
         youtubeUrl: form.youtubeUrl.trim(),
         vimeoUrl: form.vimeoUrl.trim(),
@@ -198,6 +200,7 @@ function ListingForm({ amenities, categories, listing, onSubmit }) {
     listedDate: new Date().toISOString(),
     image: form.images[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&auto=format&fit=crop&q=70',
     images: form.images,
+    floorPlan: form.floorPlan.trim(),
     videos: {
       youtubeUrl: form.youtubeUrl.trim(),
       vimeoUrl: form.vimeoUrl.trim(),
@@ -233,6 +236,7 @@ function ListingForm({ amenities, categories, listing, onSubmit }) {
       <label>Status<select value={form.status} onChange={(event) => updateForm('status', event.target.value)} required>{listingStatuses.map((status) => <option key={status}>{status}</option>)}</select></label>
       <label>YouTube URL<input value={form.youtubeUrl} onChange={(event) => updateForm('youtubeUrl', event.target.value)} placeholder="https://youtube.com/watch?v=..." /></label>
       <label>Vimeo URL<input value={form.vimeoUrl} onChange={(event) => updateForm('vimeoUrl', event.target.value)} placeholder="https://vimeo.com/..." /></label>
+      <label className="full-field">Floor Plan URL<input value={form.floorPlan} onChange={(event) => updateForm('floorPlan', event.target.value)} placeholder="https://example.com/floor-plan.jpg" /></label>
       <label className="full-field">Direct Video URL<input value={form.directVideoUrl} onChange={(event) => updateForm('directVideoUrl', event.target.value)} placeholder="https://example.com/tour.mp4" /></label>
       <label className="full-field">Image Upload<input type="file" accept="image/*" multiple onChange={handleImageUpload} />{errors.image && <small className="form-error">{errors.image}</small>}</label>
       {form.images.map((image, index) => (
@@ -511,6 +515,7 @@ export default function DashboardPage({ variant = 'user' }) {
   const [leadNote, setLeadNote] = useState('')
   const [templateForm, setTemplateForm] = useState({ title: '', message: '' })
   const [viewingForm, setViewingForm] = useState({ date: '', time: '' })
+  const [analyticsToday] = useState(() => Date.now())
   const data = content[variant]
   const extras = dashboardExtras[variant]
   const pathParts = location.pathname.split('/').filter(Boolean)
@@ -524,6 +529,7 @@ export default function DashboardPage({ variant = 'user' }) {
   const relevantMessages = variant === 'agent'
     ? messages.filter((message) => user?.role === 'agent' || message.agent === user?.name || message.owner === user?.name)
     : messages
+  const agentRespondedMessages = relevantMessages.filter((message) => (message.replies || []).length > 0)
   const unreadInquiryCount = relevantMessages.filter((message) => !message.isRead).length
   const inquiryNotifications = relevantMessages.filter((message) => !message.isRead).map((message) => ({
     id: message.id,
@@ -548,6 +554,13 @@ export default function DashboardPage({ variant = 'user' }) {
     }
   }, { views: 0, favorites: 0, inquiries: relevantMessages.length, promotions: 0 })
   const engagementRate = agentMetrics.views ? Math.round(((agentMetrics.favorites + agentMetrics.inquiries) / agentMetrics.views) * 100) : 0
+  const responseRate = relevantMessages.length ? Math.round((agentRespondedMessages.length / relevantMessages.length) * 100) : 0
+  const averageDaysOnMarket = agentListings.length ? Math.round(agentListings.reduce((total, property) => {
+    const start = new Date(property.listedDate || property.createdAt || new Date()).getTime()
+    const end = property.status === 'Sold' || property.status === 'Rented' || property.status === 'Expired' ? new Date(property.reviewedAt || property.expiredAt || analyticsToday).getTime() : analyticsToday
+    return total + Math.max(0, Math.round((end - start) / (24 * 60 * 60 * 1000)))
+  }, 0) / agentListings.length) : 0
+  const conversionRate = relevantMessages.length ? Math.round((relevantMessages.filter((message) => message.status === 'Closed').length / relevantMessages.length) * 100) : 0
   const promotionRequests = allListings.filter((property) => property.promotion?.status === 'Requested' || property.promotion?.status === 'Approved')
   const platformAnalytics = {
     users: registeredUsers.length,
@@ -569,7 +582,7 @@ export default function DashboardPage({ variant = 'user' }) {
   const dynamicStats = variant === 'user'
     ? [['Saved Properties', favoriteProperties.length.toString(), '+live'], ['Recently Viewed', recentProperties.length.toString(), '+live'], ['Saved Searches', savedSearches.length.toString(), '+live'], ['Compare List', compareProperties.length.toString(), `${compareProperties.length}/4`]]
     : variant === 'agent'
-      ? [['Active Listings', agentListings.filter((property) => property.status === 'Active').length.toString(), '+live'], ['Listing Views', agentMetrics.views.toString(), '+live'], ['Inquiries', agentMetrics.inquiries.toString(), unreadInquiryCount ? `${unreadInquiryCount} new` : '+live'], ['Engagement', `${engagementRate}%`, '+live']]
+      ? [['Active Listings', agentListings.filter((property) => property.status === 'Active').length.toString(), `${averageDaysOnMarket} avg days`], ['Response Rate', `${responseRate}%`, unreadInquiryCount ? `${unreadInquiryCount} new` : '+live'], ['Conversion Rate', `${conversionRate}%`, `${agentMetrics.inquiries} inquiries`], ['Engagement', `${engagementRate}%`, `${agentMetrics.views} views`]]
       : [
         ['Registered Users', platformAnalytics.users.toString(), `${platformAnalytics.verifiedAgents} verified agents`],
         ['Active Listings', platformAnalytics.activeListings.toString(), `${platformAnalytics.pendingListings} pending / ${platformAnalytics.closedListings} closed`],
@@ -588,14 +601,18 @@ export default function DashboardPage({ variant = 'user' }) {
       if (activeSection === 'notifications') return visibleNotifications.map((item) => [item.text, item.time, 'Unread', item.id])
     }
     if (variant === 'agent') {
-      if (activeSection === 'my-listings') return agentListings.map((property) => [property.title, property.location, property.status, property.id])
+      if (activeSection === 'my-listings') return agentListings.map((property) => [property.title, `${property.location} / Expires ${property.expiryDate ? new Date(property.expiryDate).toLocaleDateString() : 'N/A'}`, property.status, property.id])
       if (activeSection === 'messages' || activeSection === 'leads') return relevantMessages.length ? relevantMessages.map((message) => [message.seekerName || message.name, message.propertyReference || message.propertyTitle || message.propertyId, message.status, message.id]) : extras.secondary
       if (activeSection === 'appointments') return viewings.length ? viewings.map((viewing) => [viewing.propertyTitle || viewing.property || 'Property viewing', `${viewing.date} ${viewing.time}`, viewing.status]) : extras.tableRows
-      if (activeSection === 'analytics') return agentListings.length ? agentListings.map((property) => {
+      if (activeSection === 'analytics') return agentListings.length ? [
+        ['Response Rate', `${responseRate}%`, `${agentRespondedMessages.length}/${relevantMessages.length || 0} replied`],
+        ['Average Days on Market', `${averageDaysOnMarket} days`, `${agentListings.length} listings`],
+        ['Conversion Rate', `${conversionRate}%`, `${relevantMessages.filter((message) => message.status === 'Closed').length} closed`],
+        ...agentListings.map((property) => {
         const metrics = listingAnalytics[property.id] || {}
         const engagement = metrics.views ? `${Math.round((((metrics.favorites || 0) + (metrics.inquiries || 0)) / metrics.views) * 100)}% engagement` : '0% engagement'
         return [property.title, `${metrics.views || 0} views / ${metrics.favorites || 0} saves`, `${metrics.inquiries || 0} inquiries / ${engagement}`]
-      }) : [['Listing views', `${agentMetrics.views} total`, '+live'], ['Saved properties', `${agentMetrics.favorites} saves`, '+live'], ['Qualified leads', `${agentMetrics.inquiries} inquiries`, '+live']]
+      })] : [['Response Rate', `${responseRate}%`, '+live'], ['Average Days on Market', `${averageDaysOnMarket} days`, '+live'], ['Conversion Rate', `${conversionRate}%`, '+live']]
     }
     if (variant === 'admin') {
       if (activeSection === 'users') return registeredUsers.map((item) => [item.name, item.email, item.accountStatus || 'Active', item.id, 'user'])
@@ -624,6 +641,7 @@ export default function DashboardPage({ variant = 'user' }) {
     if (criteria.propertyTypes?.length === 1) params.set('category', slugFromLabel(criteria.propertyTypes[0]))
     if (criteria.propertyTypes?.length > 1) params.set('propertyTypes', listParamFromValues(criteria.propertyTypes))
     if (criteria.amenities?.length) params.set('amenities', listParamFromValues(criteria.amenities))
+    if (criteria.nearbyAmenities?.length) params.set('nearbyAmenities', listParamFromValues(criteria.nearbyAmenities))
     if (criteria.beds && criteria.beds !== 'Any') params.set('beds', criteria.beds)
     if (criteria.baths && criteria.baths !== 'Any') params.set('baths', criteria.baths)
     if (Number(criteria.minPrice || 0) > 0) params.set('minPrice', criteria.minPrice)

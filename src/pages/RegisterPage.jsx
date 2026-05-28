@@ -31,6 +31,11 @@ export default function RegisterPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (!form.name.trim() || !form.email.trim() || !form.password) {
+      setStep(1)
+      notify('Complete your name, email, and password.', 'warning')
+      return
+    }
     try {
       const nextUser = await register({ ...form, type })
       notify(type === 'agent' ? 'Agent application created.' : 'Account created.')
@@ -85,7 +90,7 @@ export default function RegisterPage() {
               <label className="full-field">Professional Bio<textarea rows="4" placeholder="Tell clients about your expertise" /></label>
             </>
           )}
-          <label className="check-label full-field"><input type="checkbox" /> I agree to the marketplace terms and verification policy</label>
+          <label className="check-label full-field"><input type="checkbox" required /> I agree to the marketplace terms and verification policy</label>
           {isAgent && step < 3 ? (
             <button className="btn btn-primary full-field" type="button" onClick={() => setStep((value) => value + 1)}>Continue <Icon name="arrow" /></button>
           ) : (

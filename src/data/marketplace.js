@@ -20,30 +20,77 @@ export const heroStats = [
   { value: '24/7', label: 'Support' },
 ]
 
+export const agencies = [
+  {
+    id: 'premier-realty-group',
+    name: 'Premier Realty Group',
+    location: 'Victoria Island, Lagos',
+    phone: '+234 801 200 4400',
+    email: 'hello@premierrealty.luxora',
+    description: 'A premium brokerage focused on waterfront homes, commercial assets, and high-touch relocation support across Lagos and Abuja.',
+  },
+  {
+    id: 'ikoyi-residential-partners',
+    name: 'Ikoyi Residential Partners',
+    location: 'Ikoyi, Lagos',
+    phone: '+234 802 210 5500',
+    email: 'contact@ikoyipartners.luxora',
+    description: 'Residential specialists for families and professionals seeking polished apartments, family homes, and secure estates in established neighbourhoods.',
+  },
+  {
+    id: 'lekki-investment-partners',
+    name: 'Lekki Investment Partners',
+    location: 'Lekki Phase 1, Lagos',
+    phone: '+234 804 230 6600',
+    email: 'deals@lekkiinvest.luxora',
+    description: 'Investment-led advisors helping buyers evaluate new developments, short-let opportunities, and growth corridors around Lekki and the island.',
+  },
+  {
+    id: 'first-homes-lagos',
+    name: 'First Homes Lagos',
+    location: 'Yaba, Lagos',
+    phone: '+234 806 240 7700',
+    email: 'support@firsthomes.luxora',
+    description: 'Accessible housing advisors for first-time buyers, young families, and renters comparing practical homes near work, school, and transit.',
+  },
+]
+
 const agentDirectory = {
   michael: {
+    id: 'michael-chen',
     name: 'Michael Chen',
     image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=70',
+    agencyId: 'premier-realty-group',
   },
   sarah: {
+    id: 'sarah-johnson',
     name: 'Sarah Johnson',
     image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=70',
+    agencyId: 'ikoyi-residential-partners',
   },
   david: {
+    id: 'david-adeleke',
     name: 'David Adeleke',
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=70',
+    agencyId: 'premier-realty-group',
   },
   amara: {
+    id: 'amara-okonkwo',
     name: 'Amara Okonkwo',
     image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&auto=format&fit=crop&q=70',
+    agencyId: 'lekki-investment-partners',
   },
   emmanuel: {
+    id: 'emmanuel-obi',
     name: 'Emmanuel Obi',
     image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=70',
+    agencyId: 'premier-realty-group',
   },
   chioma: {
+    id: 'chioma-eze',
     name: 'Chioma Eze',
     image: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=120&auto=format&fit=crop&q=70',
+    agencyId: 'first-homes-lagos',
   },
 }
 
@@ -54,6 +101,59 @@ const interiors = [
   'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&auto=format&fit=crop&q=70',
 ]
 
+const areaProfiles = [
+  ['Victoria Island', { walkScore: 88, transitScore: 78, schools: ['Corona School Victoria Island', 'Atlantic Hall Annex'], hospitals: ['Reddington Hospital', 'Lagoon Hospitals'], transit: ['BRT Ahmadu Bello Way', 'Ozumba Mbadiwe corridor'], shops: ['Eko Atlantic retail district', 'The Palms access'] }],
+  ['Ikoyi', { walkScore: 84, transitScore: 72, schools: ['Ikoyi Nursery School', 'St. Saviour School'], hospitals: ['Paelon Memorial Clinic', 'Lagoon Hospitals Ikoyi'], transit: ['Awolowo Road bus corridor', 'Falomo bridge access'], shops: ['Ikoyi Club shops', 'Falomo shopping area'] }],
+  ['Lekki Phase 1', { walkScore: 82, transitScore: 70, schools: ['British International School access', 'Greensprings School Lekki'], hospitals: ['Evercare Hospital Lekki', 'St. Nicholas Clinic Lekki'], transit: ['Lekki-Epe expressway buses', 'Admiralty Way taxis'], shops: ['Circle Mall', 'Admiralty retail strip'] }],
+  ['Surulere', { walkScore: 79, transitScore: 76, schools: ['Adeniran Ogunsanya College area schools', 'Stadium High School'], hospitals: ['Randle General Hospital', 'Havana Specialist Hospital'], transit: ['BRT Stadium', 'Ojuelegba bus hub'], shops: ['Leisure Mall Surulere', 'Adeniran Ogunsanya shops'] }],
+  ['Oniru', { walkScore: 76, transitScore: 66, schools: ['Oniru private school cluster', 'Lekki British feeder schools'], hospitals: [], transit: ['Oniru bus stops', 'Ligali Ayorinde taxis'], shops: ['Oniru Market', 'Landmark retail boulevard'] }],
+  ['Ogba', { walkScore: 74, transitScore: 68, schools: ['Ogba Grammar School', 'Topgrade Secondary School'], hospitals: [], transit: ['Ogba bus terminal', 'Ikeja road link'], shops: ['Ogba retail market', 'County Mall access'] }],
+  ['Gbagada', { walkScore: 72, transitScore: 70, schools: ['Chrisland School Opebi access', 'Gbagada Comprehensive High School'], hospitals: [], transit: ['Gbagada BRT corridor', 'Third Mainland link buses'], shops: ['Gbagada market', 'Ifako retail strip'] }],
+  ['Akoka', { walkScore: 73, transitScore: 69, schools: ['University of Lagos', 'International School Lagos'], hospitals: [], transit: ['Unilag gate shuttle', 'Yaba bus corridor'], shops: ['Akoka neighbourhood shops', 'Yaba market access'] }],
+  ['Alimosho', { walkScore: 64, transitScore: 48, schools: ['Alimosho Grammar School', 'Estate primary school cluster'], hospitals: [], transit: [], shops: ['Egbeda retail market', 'Local estate shops'] }],
+  ['Chevron', { walkScore: 66, transitScore: 50, schools: ['Meadow Hall School access', 'Chevron estate schools'], hospitals: [], transit: [], shops: ['Chevron Drive shops', 'Lekki Conservation retail stops'] }],
+  ['Sangotedo', { walkScore: 62, transitScore: 46, schools: ['Corona School Sangotedo access', 'Sangotedo community schools'], hospitals: [], transit: [], shops: ['Novare Lekki Mall', 'Sangotedo market'] }],
+  ['Ibeju-Lekki', { walkScore: 55, transitScore: 42, schools: ['Ibeju community schools', 'New town school corridor'], hospitals: [], transit: [], shops: ['Ibeju market', 'Eleko retail stops'] }],
+  ['Wuse 2', { walkScore: 83, transitScore: 58, schools: ['Capital Science Academy access', 'Wuse private schools'], hospitals: ['Nizamiye Hospital access', 'Wuse General Hospital'], transit: [], shops: ['Wuse Market', 'Banex Plaza access'] }],
+  ['Maitama', { walkScore: 81, transitScore: 54, schools: ['American International School access', 'Maitama private schools'], hospitals: ['Maitama District Hospital', 'Cedarcrest access'], transit: [], shops: ['Maitama Farmers Market', 'Transcorp retail access'] }],
+  ['Asokoro', { walkScore: 78, transitScore: 52, schools: ['Asokoro international school cluster', 'AISA access'], hospitals: ['Asokoro District Hospital', 'State House Clinic access'], transit: [], shops: ['Apo shopping access', 'Asokoro neighbourhood shops'] }],
+  ['Abeokuta', { walkScore: 63, transitScore: 44, schools: ['Abeokuta Grammar School', 'Federal University access'], hospitals: [], transit: [], shops: ['Kuto Market', 'Oke-Ilewo retail district'] }],
+  ['Yaba', { walkScore: 82, transitScore: 78, schools: ['University of Lagos access', 'Yaba College of Technology'], hospitals: ['Federal Medical Centre Ebute Metta', 'Mainland Hospital access'], transit: ['Yaba bus terminal', 'Rail station access'], shops: ['Tejuosho Market', 'E-Centre retail'] }],
+  ['Banana Island', { walkScore: 77, transitScore: 56, schools: ['Ikoyi school access', 'Banana Island school bus routes'], hospitals: ['Paelon Memorial Clinic access'], transit: [], shops: ['Banana Island convenience retail', 'Ikoyi retail access'] }],
+  ['Ajah', { walkScore: 65, transitScore: 58, schools: ['Greensprings School access', 'Ajah community schools'], hospitals: ['General Hospital Ajah'], transit: ['Ajah bus terminal'], shops: ['Ajah Market', 'Sangotedo mall access'] }],
+  ['Gwarinpa', { walkScore: 70, transitScore: 57, schools: ['Gwarinpa Estate schools', '3rd Avenue school cluster'], hospitals: ['Federal Staff Hospital access'], transit: ['Gwarinpa bus corridor'], shops: ['Gwarinpa market', '3rd Avenue shops'] }],
+  ['Ojo', { walkScore: 60, transitScore: 55, schools: ['Lagos State University', 'Ojo community schools'], hospitals: [], transit: ['Volks bus corridor'], shops: ['Alaba International Market', 'Ojo local shops'] }],
+  ['Oregun', { walkScore: 69, transitScore: 63, schools: ['Ikeja school cluster'], hospitals: ['Lagos State University Teaching Hospital access'], transit: ['Oregun bus stops', 'Alausa road link'], shops: ['Ikeja City Mall access', 'Oregun retail warehouses'] }],
+]
+
+const profileForLocation = (location = '') => areaProfiles.find(([area]) => location.includes(area))?.[1] || {
+  walkScore: 68,
+  transitScore: 55,
+  schools: ['Neighbourhood primary school', 'Community secondary school'],
+  hospitals: ['Local medical centre'],
+  transit: ['Main road bus stops'],
+  shops: ['Neighbourhood market', 'Convenience retail'],
+}
+
+const nearbyAmenitiesForLocation = (location) => {
+  const profile = profileForLocation(location)
+  return {
+    schools: profile.schools,
+    hospitals: profile.hospitals,
+    transit: profile.transit,
+    shops: profile.shops,
+  }
+}
+
+const neighborhoodForLocation = (location) => {
+  const profile = profileForLocation(location)
+  return {
+    walkScore: profile.walkScore,
+    transitScore: profile.transitScore,
+    summary: `${location} offers practical access to everyday services, trusted schools, shopping, and key movement corridors for property seekers comparing lifestyle fit.`,
+  }
+}
+
 const withGallery = (property, gallery = interiors) => ({
   isVerified: true,
   availabilityStatus: 'Available',
@@ -61,8 +161,11 @@ const withGallery = (property, gallery = interiors) => ({
   moveInDate: 'Immediate',
   sqft: 900,
   listedDate: '2026-01-01',
+  expiryDate: '2026-12-31',
   amenities: [],
   ...property,
+  nearbyAmenities: property.nearbyAmenities || nearbyAmenitiesForLocation(property.location),
+  neighborhood: property.neighborhood || neighborhoodForLocation(property.location),
   images: [property.image, ...gallery.filter((image) => image !== property.image)].slice(0, 4),
 })
 
@@ -588,14 +691,15 @@ export const features = [
 ]
 
 export const agents = [
-  ['Sarah Johnson', 'Senior Property Consultant', 'Lagos', 4.9, 128, 45, 234, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=70', ['Luxury Homes', 'Commercial']],
-  ['Michael Chen', 'Real Estate Expert', 'Abuja', 4.8, 96, 32, 189, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=70', ['Residential', 'Investment']],
-  ['Amara Okonkwo', 'Property Manager', 'Port Harcourt', 4.9, 87, 28, 156, 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&auto=format&fit=crop&q=70', ['Rentals', 'Short-let']],
-  ['David Adeleke', 'Luxury Property Specialist', 'Lagos', 5.0, 142, 56, 312, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=70', ['Luxury', 'Waterfront']],
+  ['Sarah Johnson', 'Senior Property Consultant', 'Lagos', 4.9, 128, 45, 234, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=70', ['Luxury Homes', 'Commercial'], 'ikoyi-residential-partners'],
+  ['Michael Chen', 'Real Estate Expert', 'Abuja', 4.8, 96, 32, 189, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=70', ['Residential', 'Investment'], 'premier-realty-group'],
+  ['Amara Okonkwo', 'Property Manager', 'Port Harcourt', 4.9, 87, 28, 156, 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&auto=format&fit=crop&q=70', ['Rentals', 'Short-let'], 'lekki-investment-partners'],
+  ['David Adeleke', 'Luxury Property Specialist', 'Lagos', 5.0, 142, 56, 312, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=70', ['Luxury', 'Waterfront'], 'premier-realty-group'],
 ]
 
 export const directoryAgents = [
   {
+    id: 'michael-chen',
     name: 'Michael Chen',
     title: 'Senior Property Consultant',
     location: 'Victoria Island, Lagos',
@@ -606,10 +710,12 @@ export const directoryAgents = [
     sold: 230,
     phone: '+234 801 234 5678',
     email: 'michael@luxorahomes.com',
+    agencyId: 'premier-realty-group',
     specialties: ['Luxury Homes', 'Commercial'],
     bio: 'Ten years of luxury real estate experience with a focus on waterfront and commercial assets.',
   },
   {
+    id: 'sarah-johnson',
     name: 'Sarah Johnson',
     title: 'Residential Specialist',
     location: 'Ikoyi, Lagos',
@@ -620,10 +726,12 @@ export const directoryAgents = [
     sold: 185,
     phone: '+234 802 345 6789',
     email: 'sarah@luxorahomes.com',
+    agencyId: 'ikoyi-residential-partners',
     specialties: ['Apartments', 'Family Homes'],
     bio: 'Passionate about matching families with homes that feel practical, beautiful, and financially sound.',
   },
   {
+    id: 'david-adeleke',
     name: 'David Adeleke',
     title: 'Luxury Estate Specialist',
     location: 'Banana Island, Lagos',
@@ -634,10 +742,12 @@ export const directoryAgents = [
     sold: 120,
     phone: '+234 803 456 7890',
     email: 'david@luxorahomes.com',
+    agencyId: 'premier-realty-group',
     specialties: ['Luxury Villas', 'Waterfront'],
     bio: 'Exclusive representation for premium villas, private estates, and confidential high-value transactions.',
   },
   {
+    id: 'amara-okonkwo',
     name: 'Amara Okonkwo',
     title: 'Property Investment Advisor',
     location: 'Lekki Phase 1, Lagos',
@@ -648,10 +758,12 @@ export const directoryAgents = [
     sold: 145,
     phone: '+234 804 567 8901',
     email: 'amara@luxorahomes.com',
+    agencyId: 'lekki-investment-partners',
     specialties: ['Investment', 'New Developments'],
     bio: 'Helping investors evaluate neighborhoods, rental demand, and long-term acquisition strategy.',
   },
   {
+    id: 'emmanuel-obi',
     name: 'Emmanuel Obi',
     title: 'Commercial Real Estate Expert',
     location: 'Victoria Island, Lagos',
@@ -662,10 +774,12 @@ export const directoryAgents = [
     sold: 95,
     phone: '+234 805 678 9012',
     email: 'emmanuel@luxorahomes.com',
+    agencyId: 'premier-realty-group',
     specialties: ['Office Spaces', 'Retail'],
     bio: 'Commercial advisor for growing businesses that need functional, visible, and scalable spaces.',
   },
   {
+    id: 'chioma-eze',
     name: 'Chioma Eze',
     title: 'First-Time Buyer Specialist',
     location: 'Yaba, Lagos',
@@ -676,6 +790,7 @@ export const directoryAgents = [
     sold: 160,
     phone: '+234 806 789 0123',
     email: 'chioma@luxorahomes.com',
+    agencyId: 'first-homes-lagos',
     specialties: ['Starter Homes', 'Affordable Housing'],
     bio: 'Patient guidance for first-time buyers navigating budgets, viewings, and documentation.',
   },

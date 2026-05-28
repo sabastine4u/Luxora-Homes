@@ -1,14 +1,16 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 
 const UIContext = createContext(null)
 
 export function UIProvider({ children }) {
   const [toast, setToast] = useState(null)
+  const toastTimerRef = useRef(null)
 
   const notify = useCallback((message, type = 'success') => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
     setToast({ message, type })
-    window.setTimeout(() => setToast(null), 3200)
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 3200)
   }, [])
 
   const value = useMemo(() => ({ notify }), [notify])

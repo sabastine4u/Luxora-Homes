@@ -62,6 +62,7 @@ const normalizeCriteria = (criteria = {}) => ({
   sort: criteria.sort || 'recent',
   propertyTypes: criteria.propertyTypes || [],
   amenities: criteria.amenities || [],
+  nearbyAmenities: criteria.nearbyAmenities || [],
   beds: criteria.beds || 'Any',
   baths: criteria.baths || 'Any',
   minPrice: criteria.minPrice || 0,

@@ -17,7 +17,7 @@ export default function VerifiedAgents() {
           <Button variant="outline" href="/agents">View All Agents <Icon name="arrow" /></Button>
         </div>
         <div className="agent-grid">
-          {agents.map(([name, title, location, rating, reviews, listings, sold, image, specialties]) => (
+          {agents.map(([name, title, location, rating, reviews, listings, sold, image, specialties, agencyId]) => (
             <article className="agent-card" key={name}>
               <div className="agent-avatar">
                 <img src={image} alt={name} loading="lazy" />
@@ -35,6 +35,7 @@ export default function VerifiedAgents() {
                 {specialties.map((specialty) => <span key={specialty}>{specialty}</span>)}
               </div>
               <Button variant="outline" href={`/listings?agentId=${agentIdFromName(name)}`}>View Listings</Button>
+              <Button variant="ghost" href={`/agency/${agencyId}`}>Agency Profile</Button>
             </article>
           ))}
         </div>

@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react'
 import Icon from '../common/Icon'
 import { useContent } from '../../context/ContentContext'
 
+const nearbyOptions = [
+  ['schools', 'Schools'],
+  ['hospitals', 'Hospitals'],
+  ['transit', 'Transit'],
+  ['shops', 'Shops'],
+]
+
 export default function PropertyFilters({ totalResults, initialFilters = {}, onFiltersChange, viewMode, onViewModeChange }) {
   const { amenities, categories } = useContent()
   const [isExpanded, setIsExpanded] = useState(false)
@@ -10,10 +17,24 @@ export default function PropertyFilters({ totalResults, initialFilters = {}, onF
   const [sort, setSort] = useState(initialFilters.sort || 'recent')
   const [selectedTypes, setSelectedTypes] = useState(initialFilters.propertyTypes || [])
   const [selectedAmenities, setSelectedAmenities] = useState(initialFilters.amenities || [])
+  const [selectedNearby, setSelectedNearby] = useState(initialFilters.nearbyAmenities || [])
   const [beds, setBeds] = useState(initialFilters.beds || 'Any')
   const [baths, setBaths] = useState(initialFilters.baths || 'Any')
   const [minPrice] = useState(initialFilters.minPrice || 0)
   const [price, setPrice] = useState(initialFilters.price ?? 65)
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setQuery(initialFilters.query || '')
+      setSort(initialFilters.sort || 'recent')
+      setSelectedTypes(initialFilters.propertyTypes || [])
+      setSelectedAmenities(initialFilters.amenities || [])
+      setSelectedNearby(initialFilters.nearbyAmenities || [])
+      setBeds(initialFilters.beds || 'Any')
+      setBaths(initialFilters.baths || 'Any')
+      setPrice(initialFilters.price ?? 65)
+    })
+  }, [initialFilters])
 
   useEffect(() => {
     onFiltersChange({
@@ -21,12 +42,13 @@ export default function PropertyFilters({ totalResults, initialFilters = {}, onF
       sort,
       propertyTypes: selectedTypes,
       amenities: selectedAmenities,
+      nearbyAmenities: selectedNearby,
       beds,
       baths,
       minPrice,
       price,
     })
-  }, [baths, beds, minPrice, onFiltersChange, price, query, selectedAmenities, selectedTypes, sort])
+  }, [baths, beds, minPrice, onFiltersChange, price, query, selectedAmenities, selectedNearby, selectedTypes, sort])
 
   const toggleGroup = (group) => {
     setOpenGroups((items) => (items.includes(group) ? items.filter((item) => item !== group) : [...items, group]))
@@ -39,6 +61,7 @@ export default function PropertyFilters({ totalResults, initialFilters = {}, onF
   const activeFilters = [
     ...selectedTypes,
     ...selectedAmenities,
+    ...nearbyOptions.filter(([value]) => selectedNearby.includes(value)).map(([, label]) => label),
     beds !== 'Any' ? `${beds} Beds` : null,
     baths !== 'Any' ? `${baths} Baths` : null,
   ].filter(Boolean)
@@ -46,6 +69,7 @@ export default function PropertyFilters({ totalResults, initialFilters = {}, onF
   const clearFilter = (filter) => {
     setSelectedTypes((items) => items.filter((item) => item !== filter))
     setSelectedAmenities((items) => items.filter((item) => item !== filter))
+    setSelectedNearby((items) => items.filter((item) => nearbyOptions.find(([value, label]) => value === item && label === filter) ? false : true))
     if (filter.includes('Beds')) setBeds('Any')
     if (filter.includes('Baths')) setBaths('Any')
   }
@@ -129,13 +153,23 @@ export default function PropertyFilters({ totalResults, initialFilters = {}, onF
                 </div>
               )}
             </div>
+            <div>
+              <button className="filter-accordion-trigger" type="button" onClick={() => toggleGroup('nearby')}>
+                Nearby <Icon name="chevron" />
+              </button>
+              {openGroups.includes('nearby') && (
+                <div className="chip-grid">
+                  {nearbyOptions.map(([value, label]) => <label key={value} className={selectedNearby.includes(value) ? 'is-checked' : ''}><input checked={selectedNearby.includes(value)} onChange={() => toggleValue(value, selectedNearby, setSelectedNearby)} type="checkbox" /> {label}</label>)}
+                </div>
+              )}
+            </div>
           </div>
         )}
         {activeFilters.length > 0 && (
           <div className="active-filter-row">
             <span>Active filters:</span>
             {activeFilters.map((filter) => <button key={filter} onClick={() => clearFilter(filter)} type="button">{filter} x</button>)}
-            <button type="button" onClick={() => { setSelectedTypes([]); setSelectedAmenities([]); setBeds('Any'); setBaths('Any') }}>Clear all</button>
+            <button type="button" onClick={() => { setSelectedTypes([]); setSelectedAmenities([]); setSelectedNearby([]); setBeds('Any'); setBaths('Any') }}>Clear all</button>
           </div>
         )}
       </div>

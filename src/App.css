@@ -2707,11 +2707,13 @@ select {
 }
 
 .floor-plan iframe,
-.floor-plan video {
+.floor-plan video,
+.floor-plan img {
   width: 100%;
   min-height: 320px;
   border: 0;
   border-radius: calc(var(--radius) - 4px);
+  object-fit: contain;
 }
 
 .contact-form {

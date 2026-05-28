@@ -21,6 +21,7 @@ const criteriaKey = (criteria = {}) => JSON.stringify({
   sort: criteria.sort || 'recent',
   propertyTypes: criteria.propertyTypes || [],
   amenities: criteria.amenities || [],
+  nearbyAmenities: criteria.nearbyAmenities || [],
   beds: criteria.beds || 'Any',
   baths: criteria.baths || 'Any',
   minPrice: criteria.minPrice || 0,
@@ -44,6 +45,7 @@ export default function ListingsPage() {
     sort: searchParams.get('sort') || 'recent',
     propertyTypes: searchParams.get('propertyTypes') ? listFromParam(searchParams.get('propertyTypes')) : defaultCategory ? [defaultCategory] : [],
     amenities: listFromParam(searchParams.get('amenities')),
+    nearbyAmenities: listFromParam(searchParams.get('nearbyAmenities')),
     beds: searchParams.get('beds') || 'Any',
     baths: searchParams.get('baths') || 'Any',
     minPrice: Number(searchParams.get('minPrice') || 0),
@@ -71,6 +73,7 @@ export default function ListingsPage() {
     if (criteria.propertyTypes?.length === 1) nextParams.set('category', slugFromLabel(criteria.propertyTypes[0]))
     if (criteria.propertyTypes?.length > 1) nextParams.set('propertyTypes', listParamFromValues(criteria.propertyTypes))
     if (criteria.amenities?.length) nextParams.set('amenities', listParamFromValues(criteria.amenities))
+    if (criteria.nearbyAmenities?.length) nextParams.set('nearbyAmenities', listParamFromValues(criteria.nearbyAmenities))
     if (criteria.beds && criteria.beds !== 'Any') nextParams.set('beds', criteria.beds)
     if (criteria.baths && criteria.baths !== 'Any') nextParams.set('baths', criteria.baths)
     if (Number(criteria.minPrice || 0) > 0) nextParams.set('minPrice', criteria.minPrice)
@@ -132,6 +135,7 @@ export default function ListingsPage() {
       sort: criteria.sort || 'recent',
       propertyTypes: criteria.propertyTypes || [],
       amenities: criteria.amenities || [],
+      nearbyAmenities: criteria.nearbyAmenities || [],
       beds: criteria.beds || 'Any',
       baths: criteria.baths || 'Any',
       minPrice: criteria.minPrice || 0,
@@ -183,7 +187,7 @@ export default function ListingsPage() {
           </div>
         </div>
       </section>
-      <PropertyFilters key={`${routeType}-${criteriaKey(filters)}-${filterResetKey}`} totalResults={properties.length} initialFilters={filters} onFiltersChange={handleFiltersChange} viewMode={viewMode} onViewModeChange={setViewMode} />
+      <PropertyFilters key={filterResetKey} totalResults={properties.length} initialFilters={filters} onFiltersChange={handleFiltersChange} viewMode={viewMode} onViewModeChange={setViewMode} />
       <section className="section">
         <div className="container listings-layout">
           <aside className="side-panel">

@@ -74,6 +74,9 @@ const statusToAvailability = (status) => {
 }
 
 const daysFromDuration = (duration = '14 days') => Number.parseInt(duration, 10) || 14
+const daysFromNow = (days) => new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+const isListingExpired = (listing) => listing?.expiryDate && new Date(listing.expiryDate).getTime() < Date.now()
+const isPubliclySearchable = (listing) => !['Expired', 'Removed', 'Rejected', 'Suspended'].includes(listing.status || listing.availabilityStatus)
 
 const readAlertedPriceChanges = () => {
   try {
@@ -136,6 +139,7 @@ const buildListing = (payload, existing = {}) => {
     furnished: existing.furnished || 'Unfurnished',
     moveInDate: existing.moveInDate || 'Immediate',
     listedDate: existing.listedDate || new Date().toISOString().slice(0, 10),
+    expiryDate: payload.expiryDate || existing.expiryDate || daysFromNow(60),
     ...existing,
     id: existing.id || `listing-${Date.now()}`,
     title: payload.title,
@@ -152,6 +156,9 @@ const buildListing = (payload, existing = {}) => {
     sqft: Number(payload.sqft),
     description: payload.description,
     amenities: payload.amenities,
+    floorPlan: payload.floorPlan ?? existing.floorPlan ?? '',
+    nearbyAmenities: payload.nearbyAmenities || existing.nearbyAmenities || {},
+    neighborhood: payload.neighborhood || existing.neighborhood || {},
     videos: {
       ...(existing.videos || {}),
       ...(payload.videos || {}),
@@ -202,6 +209,31 @@ export function ListingProvider({ children }) {
       ...nextState,
     }))
   }, [])
+
+  useEffect(() => {
+    const expireListing = (listing) => ({
+      ...listing,
+      status: 'Expired',
+      moderationStatus: listing.moderationStatus === 'Active' ? 'Expired' : listing.moderationStatus,
+      availabilityStatus: statusToAvailability('Expired'),
+      expiredAt: listing.expiredAt || new Date().toISOString(),
+    })
+    const nextManagedListings = managedListings.map((listing) => (listing.status === 'Active' && isListingExpired(listing) ? expireListing(listing) : listing))
+    const managedChanged = nextManagedListings.some((listing, index) => listing !== managedListings[index])
+    const nextListingUpdates = Object.fromEntries(Object.entries(listingUpdates).map(([id, listing]) => [
+      id,
+      listing.status === 'Active' && isListingExpired(listing) ? expireListing(listing) : listing,
+    ]))
+    const updatesChanged = Object.keys(nextListingUpdates).some((id) => nextListingUpdates[id] !== listingUpdates[id])
+
+    if (managedChanged || updatesChanged) {
+      persist({ managedListings: nextManagedListings, listingUpdates: nextListingUpdates })
+      queueMicrotask(() => {
+        if (managedChanged) setManagedListings(nextManagedListings)
+        if (updatesChanged) setListingUpdates(nextListingUpdates)
+      })
+    }
+  }, [listingUpdates, managedListings, persist])
 
   const addModerationHistory = useCallback((entry) => {
     setModerationHistory((items) => {
@@ -348,6 +380,7 @@ export function ListingProvider({ children }) {
       promotion: null,
       reviewedAt: null,
       listedDate: new Date().toISOString().slice(0, 10),
+      expiryDate: daysFromNow(60),
       priceHistory: existing.priceHistory?.length ? existing.priceHistory : [{ price: Number(existing.price), date: new Date().toISOString(), note: 'Initial price' }],
     }
     setManagedListings((items) => {
@@ -534,24 +567,28 @@ export function ListingProvider({ children }) {
     const type = filters.listingType || 'all'
     const selectedTypes = (filters.propertyTypes || []).flatMap(resolveCategoryValues)
     const selectedAmenities = filters.amenities || []
+    const selectedNearby = filters.nearbyAmenities || []
     const agentId = filters.agentId || ''
     const minBeds = parseMinimum(filters.beds)
     const minBaths = parseMinimum(filters.baths)
     const minPrice = Number(filters.minPrice || 0) * 1000000
-    const maxPrice = Number(filters.price || 100) * 1000000
+    const selectedMaxPrice = Number(filters.price ?? 65)
+    const maxPrice = selectedMaxPrice >= 65 ? Number.POSITIVE_INFINITY : selectedMaxPrice * 1000000
 
     let results = allListings.filter((property) => {
-      const searchable = normalize(`${property.title} ${property.location} ${property.category} ${property.amenities.join(' ')} ${property.furnished} ${property.availabilityStatus}`)
+      const nearbyValues = Object.values(property.nearbyAmenities || {}).flat()
+      const searchable = normalize(`${property.title} ${property.location} ${property.category} ${property.amenities.join(' ')} ${nearbyValues.join(' ')} ${property.furnished} ${property.availabilityStatus}`)
       const matchesQuery = !query || searchable.includes(query)
       const matchesType = type === 'all' || property.type === type
       const matchesCategory = selectedTypes.length === 0 || selectedTypes.includes(property.category)
       const matchesAmenities = selectedAmenities.every((amenity) => property.amenities.includes(amenity))
+      const matchesNearby = selectedNearby.every((amenity) => (property.nearbyAmenities?.[amenity] || []).length > 0)
       const matchesAgent = !agentId || agentIdFromAgent(property.agent) === agentId
       const matchesBeds = minBeds === 0 || property.beds >= minBeds
       const matchesBaths = minBaths === 0 || property.baths >= minBaths
       const matchesPrice = property.price >= minPrice && property.price <= maxPrice
 
-      return matchesQuery && matchesType && matchesCategory && matchesAmenities && matchesAgent && matchesBeds && matchesBaths && matchesPrice
+      return isPubliclySearchable(property) && matchesQuery && matchesType && matchesCategory && matchesAmenities && matchesNearby && matchesAgent && matchesBeds && matchesBaths && matchesPrice
     })
 
     if (filters.sort === 'price-low') results = [...results].sort((a, b) => a.price - b.price)

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
@@ -41,13 +41,14 @@ function MapBounds({ properties }) {
 }
 
 export default function PropertyMap({ properties = [], property, height = 340 }) {
-  const mapProperties = property ? [property] : properties
-  const validProperties = mapProperties.filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude))
+  const mapProperties = useMemo(() => (property ? [property] : properties), [properties, property])
+  const validProperties = useMemo(() => mapProperties.filter((item) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude)), [mapProperties])
   const center = validProperties[0] ? [validProperties[0].latitude, validProperties[0].longitude] : [6.5244, 3.3792]
+  const mapKey = validProperties.map((item) => `${item.id}:${item.latitude}:${item.longitude}`).join('|') || 'fallback-map'
 
   return (
     <div className="property-map" style={{ minHeight: height }}>
-      <MapContainer center={center} zoom={property ? 15 : 11} scrollWheelZoom={false}>
+      <MapContainer key={mapKey} center={center} zoom={property ? 15 : 11} scrollWheelZoom={false}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

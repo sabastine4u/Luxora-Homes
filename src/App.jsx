@@ -10,6 +10,7 @@ import VerifiedAgents from './components/sections/VerifiedAgents'
 import Testimonials from './components/sections/Testimonials'
 import CTASection from './components/sections/CTASection'
 import AgentsPage from './pages/AgentsPage'
+import AgencyPage from './pages/AgencyPage'
 import DashboardPage from './pages/DashboardPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ListingsPage from './pages/ListingsPage'
@@ -42,6 +43,7 @@ function App() {
       <Route path="/" element={<main className="app-shell"><HomePage /></main>} />
       <Route path="/listings" element={<ListingsPage />} />
       <Route path="/agents" element={<AgentsPage />} />
+      <Route path="/agency/:id" element={<AgencyPage />} />
       <Route path="/property/:id" element={<PropertyDetailsPage />} />
       <Route path="/auth/login" element={<LoginPage />} />
       <Route path="/auth/register" element={<RegisterPage />} />

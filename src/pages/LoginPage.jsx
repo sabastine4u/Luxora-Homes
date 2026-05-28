@@ -60,8 +60,8 @@ export default function LoginPage() {
             </button>
             <div className="auth-divider"><span>or continue with</span></div>
             <div className="social-login-grid">
-              <button type="button">Google</button>
-              <button type="button">Facebook</button>
+              <button type="button" onClick={() => notify('Use the demo email login for this frontend preview.', 'warning')}>Google</button>
+              <button type="button" onClick={() => notify('Use the demo email login for this frontend preview.', 'warning')}>Facebook</button>
             </div>
             <p className="auth-switch">Do not have an account? <Link to="/auth/register">Create one</Link></p>
           </div>
