@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const defaultType = searchParams.get('type') || 'buyer'
   const [type, setType] = useState(defaultType)
   const [step, setStep] = useState(1)
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', company: '', license: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', company: '', license: '', idDocument: null, licenseDocument: null })
   const isAgent = type === 'agent'
 
   const handleTypeChange = (value) => {
@@ -27,6 +27,7 @@ export default function RegisterPage() {
   }
 
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }))
+  const updateFile = (field, file) => updateForm(field, file ? { name: file.name, size: file.size, type: file.type } : null)
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -34,8 +35,8 @@ export default function RegisterPage() {
       const nextUser = await register({ ...form, type })
       notify(type === 'agent' ? 'Agent application created.' : 'Account created.')
       navigate(`/dashboard/${nextUser.role === 'agent' ? 'agent' : 'user'}`, { replace: true })
-    } catch {
-      notify('Could not create the account.', 'error')
+    } catch (error) {
+      notify(error.message || 'Could not create the account.', 'error')
     }
   }
 
@@ -78,8 +79,8 @@ export default function RegisterPage() {
           )}
           {isAgent && step === 3 && (
             <>
-              <label>ID Document<input type="file" /></label>
-              <label>License Document<input type="file" /></label>
+              <label>ID Document<input type="file" onChange={(event) => updateFile('idDocument', event.target.files?.[0])} /></label>
+              <label>License Document<input type="file" onChange={(event) => updateFile('licenseDocument', event.target.files?.[0])} /></label>
               <label className="full-field">Portfolio URL<input placeholder="https://..." /></label>
               <label className="full-field">Professional Bio<textarea rows="4" placeholder="Tell clients about your expertise" /></label>
             </>

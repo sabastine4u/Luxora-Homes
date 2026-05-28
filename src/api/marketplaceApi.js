@@ -30,6 +30,7 @@ const users = [
 ]
 
 const normalize = (value = '') => value.toString().trim().toLowerCase()
+const agentIdFromAgent = (agent = {}) => (agent.id || agent.email || agent.name || '').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const parseMinimum = (value) => {
   if (!value || value === 'Any') return 0
@@ -68,8 +69,10 @@ export async function searchProperties(filters = {}) {
   const type = filters.listingType || 'all'
   const selectedTypes = (filters.propertyTypes || []).flatMap(resolveCategoryValues)
   const selectedAmenities = filters.amenities || []
+  const agentId = filters.agentId || ''
   const minBeds = parseMinimum(filters.beds)
   const minBaths = parseMinimum(filters.baths)
+  const minPrice = Number(filters.minPrice || 0) * 1000000
   const maxPrice = Number(filters.price || 100) * 1000000
 
   let results = listingProperties.filter((property) => {
@@ -78,11 +81,12 @@ export async function searchProperties(filters = {}) {
     const matchesType = type === 'all' || property.type === type
     const matchesCategory = selectedTypes.length === 0 || selectedTypes.includes(property.category)
     const matchesAmenities = selectedAmenities.every((amenity) => property.amenities.includes(amenity))
+    const matchesAgent = !agentId || agentIdFromAgent(property.agent) === agentId
     const matchesBeds = minBeds === 0 || property.beds >= minBeds
     const matchesBaths = minBaths === 0 || property.baths >= minBaths
-    const matchesPrice = property.price <= maxPrice || property.priceType === 'total'
+    const matchesPrice = property.price >= minPrice && property.price <= maxPrice
 
-    return matchesQuery && matchesType && matchesCategory && matchesAmenities && matchesBeds && matchesBaths && matchesPrice
+    return matchesQuery && matchesType && matchesCategory && matchesAmenities && matchesAgent && matchesBeds && matchesBaths && matchesPrice
   })
 
   if (filters.sort === 'price-low') results = [...results].sort((a, b) => a.price - b.price)

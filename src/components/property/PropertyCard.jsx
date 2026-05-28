@@ -17,10 +17,11 @@ const formatPrice = (price) =>
 
 export default function PropertyCard({ property, variant = 'default' }) {
   const { isAuthenticated, user } = useAuth()
-  const { reportListing } = useListings()
-  const { isFavorite, toggleFavorite } = useFavoriteProperties()
+  const { reportListing, trackListingFavorite } = useListings()
+  const { addCompare, isCompared, isFavorite, toggleFavorite } = useFavoriteProperties()
   const { notify } = useUI()
   const saved = isFavorite(property.id)
+  const compared = isCompared(property.id)
   const [isReportOpen, setIsReportOpen] = useState(false)
   const [reportReason, setReportReason] = useState(reportReasons[0])
 
@@ -30,6 +31,7 @@ export default function PropertyCard({ property, variant = 'default' }) {
       return
     }
     toggleFavorite(property.id)
+    trackListingFavorite(property.id, saved ? -1 : 1)
     notify(saved ? 'Removed from saved homes.' : 'Saved to your dashboard.')
   }
 
@@ -58,6 +60,24 @@ export default function PropertyCard({ property, variant = 'default' }) {
     notify('Listing report sent to admin moderation.')
   }
 
+  const handleCompare = (event) => {
+    event.preventDefault()
+    if (!isAuthenticated) {
+      notify('Sign in to compare properties.', 'warning')
+      return
+    }
+    const result = addCompare(property.id)
+    if (result.reason === 'duplicate') {
+      notify('Property is already in your comparison.', 'warning')
+      return
+    }
+    if (result.reason === 'limit') {
+      notify('You can compare up to 4 properties.', 'warning')
+      return
+    }
+    notify('Property added to comparison.')
+  }
+
   return (
     <article className={`property-card reveal-card ${variant === 'horizontal' ? 'property-card-horizontal' : ''}`}>
       <div className="property-media">
@@ -77,6 +97,7 @@ export default function PropertyCard({ property, variant = 'default' }) {
         <div className="quick-actions">
           <Link to={`/property/${property.id}`}><Icon name="eye" /> Quick View</Link>
           <Link to="/dashboard/user/viewings"><Icon name="calendar" /> Schedule</Link>
+          <a href={`/dashboard/user/compare-properties`} onClick={handleCompare}><Icon name="check" /> {compared ? 'Compared' : 'Compare'}</a>
           <a href={`/property/${property.id}`} onClick={handleReport}><Icon name="bell" /> Report</a>
         </div>
         <span className="property-category">{property.category}</span>
@@ -85,7 +106,7 @@ export default function PropertyCard({ property, variant = 'default' }) {
       <div className="property-body">
         <div className="property-meta-row">
           <span className="badge badge-outline">{property.type === 'rent' ? 'For Rent' : property.type === 'lease' ? 'For Lease' : 'For Sale'}</span>
-          <span className="listed-date">{new Date(property.listedDate).toLocaleDateString()}</span>
+          <span className="listed-date">{property.availabilityStatus || property.status || new Date(property.listedDate).toLocaleDateString()}</span>
         </div>
         <Link to={`/property/${property.id}`} className="property-title-link">
           <h3>{property.title}</h3>

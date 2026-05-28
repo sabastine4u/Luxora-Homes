@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import Icon from '../common/Icon'
-
-const propertyTypes = ['Apartment', 'Duplex', 'Studio Apartment', 'Mini Flat', 'Self-contained', 'Short-let', 'Student Housing', 'Affordable Rental', 'Family Home', 'Villa', 'Penthouse', 'Commercial', 'Warehouse', 'Land']
-const amenities = ['Parking', 'Pool', 'Gym', 'Security', 'Furnished', 'AC', 'Garden', 'Elevator', 'Balcony', 'WiFi', 'Water', 'Backup Power']
+import { useContent } from '../../context/ContentContext'
 
 export default function PropertyFilters({ totalResults, initialFilters = {}, onFiltersChange, viewMode, onViewModeChange }) {
+  const { amenities, categories } = useContent()
   const [isExpanded, setIsExpanded] = useState(false)
   const [openGroups, setOpenGroups] = useState(['type', 'price', 'rooms'])
   const [query, setQuery] = useState(initialFilters.query || '')
-  const [sort, setSort] = useState('recent')
+  const [sort, setSort] = useState(initialFilters.sort || 'recent')
   const [selectedTypes, setSelectedTypes] = useState(initialFilters.propertyTypes || [])
-  const [selectedAmenities, setSelectedAmenities] = useState([])
-  const [beds, setBeds] = useState('Any')
-  const [baths, setBaths] = useState('Any')
-  const [price, setPrice] = useState(65)
+  const [selectedAmenities, setSelectedAmenities] = useState(initialFilters.amenities || [])
+  const [beds, setBeds] = useState(initialFilters.beds || 'Any')
+  const [baths, setBaths] = useState(initialFilters.baths || 'Any')
+  const [minPrice] = useState(initialFilters.minPrice || 0)
+  const [price, setPrice] = useState(initialFilters.price ?? 65)
 
   useEffect(() => {
     onFiltersChange({
@@ -23,9 +23,10 @@ export default function PropertyFilters({ totalResults, initialFilters = {}, onF
       amenities: selectedAmenities,
       beds,
       baths,
+      minPrice,
       price,
     })
-  }, [baths, beds, onFiltersChange, price, query, selectedAmenities, selectedTypes, sort])
+  }, [baths, beds, minPrice, onFiltersChange, price, query, selectedAmenities, selectedTypes, sort])
 
   const toggleGroup = (group) => {
     setOpenGroups((items) => (items.includes(group) ? items.filter((item) => item !== group) : [...items, group]))
@@ -67,6 +68,7 @@ export default function PropertyFilters({ totalResults, initialFilters = {}, onF
         <div className="view-toggle" aria-label="View mode">
           <button className={viewMode === 'grid' ? 'is-active' : ''} type="button" onClick={() => onViewModeChange('grid')}>Grid</button>
           <button className={viewMode === 'list' ? 'is-active' : ''} type="button" onClick={() => onViewModeChange('list')}>List</button>
+          <button className={viewMode === 'map' ? 'is-active' : ''} type="button" onClick={() => onViewModeChange('map')}>Map</button>
         </div>
 
         <button className="btn btn-outline filter-more" type="button" onClick={() => setIsExpanded((value) => !value)}>
@@ -83,7 +85,7 @@ export default function PropertyFilters({ totalResults, initialFilters = {}, onF
               </button>
               {openGroups.includes('type') && (
                 <div className="chip-grid">
-                  {propertyTypes.map((type) => <label key={type} className={selectedTypes.includes(type) ? 'is-checked' : ''}><input checked={selectedTypes.includes(type)} onChange={() => toggleValue(type, selectedTypes, setSelectedTypes)} type="checkbox" /> {type}</label>)}
+                  {categories.map((type) => <label key={type} className={selectedTypes.includes(type) ? 'is-checked' : ''}><input checked={selectedTypes.includes(type)} onChange={() => toggleValue(type, selectedTypes, setSelectedTypes)} type="checkbox" /> {type}</label>)}
                 </div>
               )}
             </div>

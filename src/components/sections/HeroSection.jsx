@@ -1,8 +1,25 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { heroStats } from '../../data/marketplace'
 import Button from '../common/Button'
 import Icon from '../common/Icon'
 
 export default function HeroSection() {
+  const navigate = useNavigate()
+  const [searchType, setSearchType] = useState('buy')
+
+  const submitSearch = (event) => {
+    event.preventDefault()
+    const params = new URLSearchParams()
+    if (searchType === 'short-let') {
+      params.set('type', 'rent')
+      params.set('category', 'short-let')
+    } else {
+      params.set('type', searchType)
+    }
+    navigate(`/listings?${params.toString()}`)
+  }
+
   return (
     <section className="hero-section" id="top">
       <div className="hero-backdrop">
@@ -25,14 +42,11 @@ export default function HeroSection() {
           </div>
         </div>
 
-        <form className="search-panel" aria-label="Search properties" onSubmit={(event) => {
-          event.preventDefault()
-          window.location.href = '/listings'
-        }}>
+        <form className="search-panel" aria-label="Search properties" onSubmit={submitSearch}>
           <div className="search-tabs" role="tablist" aria-label="Property search type">
-            <button type="button" className="is-active">Buy</button>
-            <button type="button">Rent</button>
-            <button type="button">Short-let</button>
+            <button type="button" className={searchType === 'buy' ? 'is-active' : ''} onClick={() => setSearchType('buy')}>Buy</button>
+            <button type="button" className={searchType === 'rent' ? 'is-active' : ''} onClick={() => setSearchType('rent')}>Rent</button>
+            <button type="button" className={searchType === 'short-let' ? 'is-active' : ''} onClick={() => setSearchType('short-let')}>Short-let</button>
           </div>
           <div className="search-grid">
             <label>

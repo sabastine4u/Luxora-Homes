@@ -2,6 +2,8 @@ import { agents } from '../../data/marketplace'
 import Button from '../common/Button'
 import Icon from '../common/Icon'
 
+const agentIdFromName = (name = '') => name.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
 export default function VerifiedAgents() {
   return (
     <section className="section section-alt" id="agents">
@@ -32,6 +34,7 @@ export default function VerifiedAgents() {
               <div className="specialties">
                 {specialties.map((specialty) => <span key={specialty}>{specialty}</span>)}
               </div>
+              <Button variant="outline" href={`/listings?agentId=${agentIdFromName(name)}`}>View Listings</Button>
             </article>
           ))}
         </div>

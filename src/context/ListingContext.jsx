@@ -1,13 +1,18 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { listingProperties, resolveCategoryValues } from '../data/marketplace'
+import { withPropertyCoordinates } from '../utils/propertyCoordinates'
 
 const ListingContext = createContext(null)
 const storageKey = 'luxora-listing-state'
+const socialStorageKey = 'luxora-social-state'
+const alertedPriceChangesKey = 'alertedPriceChanges'
 
 export const reportReasons = ['fake listing', 'incorrect price', 'scam/fraud', 'already sold/rented', 'inappropriate content', 'duplicate listing']
+export const listingStatuses = ['Active', 'Pending', 'Sold', 'Rented', 'Off-Market', 'Expired']
 
 const defaultAgent = {
+  id: 'sarah',
   name: 'Sarah Agent',
   image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=70',
 }
@@ -15,14 +20,16 @@ const defaultAgent = {
 const readStoredListings = () => {
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey))
-    if (Array.isArray(stored)) return { managedListings: stored, listingUpdates: {}, reports: [] }
+    if (Array.isArray(stored)) return { managedListings: stored, listingUpdates: {}, reports: [], listingAnalytics: {}, moderationHistory: [] }
     return {
       managedListings: stored?.managedListings || [],
       listingUpdates: stored?.listingUpdates || {},
       reports: stored?.reports || [],
+      listingAnalytics: stored?.listingAnalytics || {},
+      moderationHistory: stored?.moderationHistory || [],
     }
   } catch {
-    return { managedListings: [], listingUpdates: {}, reports: [] }
+    return { managedListings: [], listingUpdates: {}, reports: [], listingAnalytics: {}, moderationHistory: [] }
   }
 }
 
@@ -39,18 +46,89 @@ const priceTypeFromListingType = (type) => {
   return 'month'
 }
 
+const parseCoordinate = (value) => {
+  if (value === null || value === undefined || value === '') return undefined
+  const coordinate = Number(value)
+  return Number.isFinite(coordinate) ? coordinate : undefined
+}
+
+const agentIdFromAgent = (agent = {}) => (agent.id || agent.email || agent.name || '').toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+const withAgentId = (property) => ({
+  ...property,
+  agent: {
+    ...(property.agent || defaultAgent),
+    id: agentIdFromAgent(property.agent || defaultAgent),
+  },
+})
+
 const statusToAvailability = (status) => {
   if (status === 'Sold') return 'Sold'
   if (status === 'Rented') return 'Rented'
   if (status === 'Pending') return 'Pending'
+  if (status === 'Off-Market') return 'Off-Market'
+  if (status === 'Expired') return 'Expired'
   if (status === 'Rejected') return 'Rejected'
   if (status === 'Suspended') return 'Suspended'
   if (status === 'Removed') return 'Removed'
   return 'Available'
 }
 
+const daysFromDuration = (duration = '14 days') => Number.parseInt(duration, 10) || 14
+
+const readAlertedPriceChanges = () => {
+  try {
+    return JSON.parse(localStorage.getItem(alertedPriceChangesKey)) || []
+  } catch {
+    return []
+  }
+}
+
+const appendPriceDropNotifications = (listing, previousPrice, nextPrice) => {
+  const alertId = `${listing.id}:${previousPrice}:${nextPrice}`
+  const alerted = readAlertedPriceChanges()
+  if (alerted.includes(alertId)) return
+
+  const createdAt = new Date().toISOString()
+  const notification = {
+    id: `price-drop-${alertId}`,
+    type: 'price-drop',
+    listingId: listing.id,
+    listingTitle: listing.title,
+    text: `Price dropped on ${listing.title}`,
+    time: new Date(createdAt).toLocaleDateString(),
+    createdAt,
+    previousPrice,
+    price: nextPrice,
+    isRead: false,
+  }
+
+  Object.keys(localStorage).forEach((key) => {
+    if (!key.startsWith(`${socialStorageKey}:`) || !key.endsWith(':favorites')) return
+    try {
+      const favoriteIds = JSON.parse(localStorage.getItem(key)) || []
+      if (!favoriteIds.includes(listing.id)) return
+      const notificationKey = key.replace(/:favorites$/, ':notifications')
+      const notifications = JSON.parse(localStorage.getItem(notificationKey) || '[]')
+      if (!notifications.some((item) => item.id === notification.id)) {
+        localStorage.setItem(notificationKey, JSON.stringify([notification, ...notifications]))
+      }
+      const stateKey = key.replace(/:favorites$/, ':state')
+      const state = JSON.parse(localStorage.getItem(stateKey) || '{}')
+      const stateNotifications = state.notifications || []
+      if (!stateNotifications.some((item) => item.id === notification.id)) {
+        localStorage.setItem(stateKey, JSON.stringify({ ...state, notifications: [notification, ...stateNotifications] }))
+      }
+    } catch {
+      // Ignore malformed per-user social state and keep listing updates flowing.
+    }
+  })
+
+  localStorage.setItem(alertedPriceChangesKey, JSON.stringify([alertId, ...alerted]))
+}
+
 const buildListing = (payload, existing = {}) => {
-  const image = payload.image || existing.image || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&auto=format&fit=crop&q=70'
+  const images = (payload.images?.length ? payload.images : existing.images?.length ? existing.images : [payload.image || existing.image]).filter(Boolean)
+  const image = payload.image || images[0] || existing.image || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=900&auto=format&fit=crop&q=70'
   const status = payload.status || existing.status || 'Active'
 
   return {
@@ -63,6 +141,9 @@ const buildListing = (payload, existing = {}) => {
     title: payload.title,
     location: payload.location,
     price: Number(payload.price),
+    priceHistory: payload.priceHistory || existing.priceHistory || [],
+    latitude: parseCoordinate(payload.latitude ?? existing.latitude),
+    longitude: parseCoordinate(payload.longitude ?? existing.longitude),
     priceType: priceTypeFromListingType(payload.type),
     type: payload.type,
     category: payload.category,
@@ -71,11 +152,18 @@ const buildListing = (payload, existing = {}) => {
     sqft: Number(payload.sqft),
     description: payload.description,
     amenities: payload.amenities,
+    videos: {
+      ...(existing.videos || {}),
+      ...(payload.videos || {}),
+    },
     status,
     availabilityStatus: statusToAvailability(status),
     image,
-    images: [image],
-    agent: payload.agent || existing.agent || defaultAgent,
+    images: images.length ? images : [image],
+    agent: {
+      ...(payload.agent || existing.agent || defaultAgent),
+      id: agentIdFromAgent(payload.agent || existing.agent || defaultAgent),
+    },
   }
 }
 
@@ -84,19 +172,77 @@ export function ListingProvider({ children }) {
   const [managedListings, setManagedListings] = useState(stored.managedListings)
   const [listingUpdates, setListingUpdates] = useState(stored.listingUpdates)
   const [reports, setReports] = useState(stored.reports)
+  const [listingAnalytics, setListingAnalytics] = useState(stored.listingAnalytics)
+  const [moderationHistory, setModerationHistory] = useState(stored.moderationHistory)
+  const stateRef = useRef({
+    managedListings,
+    listingUpdates,
+    reports,
+    listingAnalytics,
+    moderationHistory,
+  })
   const allListings = useMemo(() => [
     ...managedListings,
-    ...listingProperties.map((property) => ({ ...property, ...(listingUpdates[property.id] || {}) })),
-  ].filter((property) => !property.isRemoved), [listingUpdates, managedListings])
+    ...listingProperties.map((property) => ({ ...property, priceHistory: property.priceHistory || [], ...(listingUpdates[property.id] || {}) })),
+  ].filter((property) => !property.isRemoved).map(withAgentId).map(withPropertyCoordinates), [listingUpdates, managedListings])
 
-  const persist = useCallback((nextState = {}) => {
-    localStorage.setItem(storageKey, JSON.stringify({
+  useEffect(() => {
+    stateRef.current = {
       managedListings,
       listingUpdates,
       reports,
+      listingAnalytics,
+      moderationHistory,
+    }
+  }, [listingAnalytics, listingUpdates, managedListings, moderationHistory, reports])
+
+  const persist = useCallback((nextState = {}) => {
+    localStorage.setItem(storageKey, JSON.stringify({
+      ...stateRef.current,
       ...nextState,
     }))
-  }, [listingUpdates, managedListings, reports])
+  }, [])
+
+  const addModerationHistory = useCallback((entry) => {
+    setModerationHistory((items) => {
+      const next = [{
+        id: `history-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        actor: 'Admin',
+        ...entry,
+      }, ...items].slice(0, 80)
+      persist({ moderationHistory: next })
+      return next
+    })
+  }, [persist])
+
+  const updateAnalytics = useCallback((id, updates) => {
+    setListingAnalytics((items) => {
+      const current = items[id] || { views: 0, favorites: 0, inquiries: 0, promotions: 0 }
+      const next = {
+        ...items,
+        [id]: {
+          ...current,
+          ...updates(current),
+          updatedAt: new Date().toISOString(),
+        },
+      }
+      persist({ listingAnalytics: next })
+      return next
+    })
+  }, [persist])
+
+  const trackListingView = useCallback((id) => {
+    updateAnalytics(id, (current) => ({ views: current.views + 1 }))
+  }, [updateAnalytics])
+
+  const trackListingFavorite = useCallback((id, delta = 1) => {
+    updateAnalytics(id, (current) => ({ favorites: Math.max(0, current.favorites + delta) }))
+  }, [updateAnalytics])
+
+  const trackListingInquiry = useCallback((id) => {
+    updateAnalytics(id, (current) => ({ inquiries: current.inquiries + 1 }))
+  }, [updateAnalytics])
 
   const createListing = useCallback((payload) => {
     const listing = buildListing(payload)
@@ -114,7 +260,15 @@ export function ListingProvider({ children }) {
       setManagedListings((items) => {
       const next = items.map((item) => {
         if (item.id !== id) return item
-        updatedListing = buildListing(payload, item)
+        const priceChanged = Number(payload.price) !== Number(item.price)
+        const priceHistory = item.priceHistory?.length ? item.priceHistory : [{ price: Number(item.price), date: item.listedDate || new Date().toISOString(), note: 'Initial price' }]
+        const previousPrice = Number(priceHistory[priceHistory.length - 1]?.price || item.price)
+        const nextPrice = Number(payload.price)
+        updatedListing = buildListing({
+          ...payload,
+          priceHistory: priceChanged ? [...priceHistory, { price: nextPrice, date: new Date().toISOString(), note: nextPrice < previousPrice ? 'Price dropped' : 'Price updated' }] : item.priceHistory,
+        }, item)
+        if (priceChanged && nextPrice < previousPrice) appendPriceDropNotifications(updatedListing, previousPrice, nextPrice)
         return updatedListing
       })
       persist({ managedListings: next })
@@ -125,7 +279,16 @@ export function ListingProvider({ children }) {
 
     const existing = allListings.find((item) => item.id === id)
     if (!existing) return null
-    updatedListing = buildListing({ ...existing, ...payload }, existing)
+    const priceChanged = Number(payload.price) !== Number(existing.price)
+    const priceHistory = existing.priceHistory?.length ? existing.priceHistory : [{ price: Number(existing.price), date: existing.listedDate || new Date().toISOString(), note: 'Initial price' }]
+    const previousPrice = Number(priceHistory[priceHistory.length - 1]?.price || existing.price)
+    const nextPrice = Number(payload.price)
+    updatedListing = buildListing({
+      ...existing,
+      ...payload,
+      priceHistory: priceChanged ? [...priceHistory, { price: nextPrice, date: new Date().toISOString(), note: nextPrice < previousPrice ? 'Price dropped' : 'Price updated' }] : existing.priceHistory,
+    }, existing)
+    if (priceChanged && nextPrice < previousPrice) appendPriceDropNotifications(updatedListing, previousPrice, nextPrice)
     setListingUpdates((items) => {
       const next = { ...items, [id]: { ...(items[id] || {}), ...updatedListing } }
       persist({ listingUpdates: next })
@@ -144,6 +307,13 @@ export function ListingProvider({ children }) {
       availabilityStatus: statusToAvailability(status),
       reviewedAt: new Date().toISOString(),
     }
+    addModerationHistory({
+      type: 'Listing Moderation',
+      listingId: id,
+      listingTitle: existing.title,
+      action: status,
+      note: `Listing marked ${status}`,
+    })
 
     if (managedListings.some((item) => item.id === id)) {
       setManagedListings((items) => {
@@ -160,7 +330,120 @@ export function ListingProvider({ children }) {
       return next
     })
     return updatedListing
-  }, [allListings, managedListings, persist])
+  }, [addModerationHistory, allListings, managedListings, persist])
+
+  const cloneListing = useCallback((id) => {
+    const existing = allListings.find((item) => item.id === id)
+    if (!existing) return null
+    const cloneId = `listing-${Date.now()}`
+    const clonedListing = {
+      ...existing,
+      id: cloneId,
+      title: `${existing.title} Copy`,
+      status: 'Pending',
+      moderationStatus: 'Pending',
+      availabilityStatus: statusToAvailability('Pending'),
+      isFeatured: false,
+      isPromoted: false,
+      promotion: null,
+      reviewedAt: null,
+      listedDate: new Date().toISOString().slice(0, 10),
+      priceHistory: existing.priceHistory?.length ? existing.priceHistory : [{ price: Number(existing.price), date: new Date().toISOString(), note: 'Initial price' }],
+    }
+    setManagedListings((items) => {
+      const next = [clonedListing, ...items]
+      persist({
+        managedListings: next,
+        listingAnalytics: {
+          ...stateRef.current.listingAnalytics,
+          [cloneId]: { views: 0, favorites: 0, inquiries: 0, promotions: 0 },
+        },
+      })
+      return next
+    })
+    setListingAnalytics((items) => ({
+      ...items,
+      [cloneId]: { views: 0, favorites: 0, inquiries: 0, promotions: 0 },
+    }))
+    return clonedListing
+  }, [allListings, persist])
+
+  const requestPromotion = useCallback((id, promotionRequest = '14 days') => {
+    const existing = allListings.find((item) => item.id === id)
+    if (!existing) return null
+    const requestDetails = typeof promotionRequest === 'string' ? { duration: promotionRequest } : promotionRequest
+    const duration = requestDetails.duration || '14 days'
+    const promotion = {
+      status: 'Requested',
+      package: requestDetails.package || 'Featured',
+      duration,
+      paymentStatus: requestDetails.paymentStatus || 'Simulated Paid',
+      paidAt: requestDetails.paidAt || new Date().toISOString(),
+      requestedAt: new Date().toISOString(),
+    }
+    addModerationHistory({
+      type: 'Feature Request',
+      listingId: id,
+      listingTitle: existing.title,
+      action: 'Promotion Requested',
+      note: `Requested ${promotion.package} promotion for ${duration}`,
+    })
+    const updatedListing = { ...existing, promotion, isPromoted: false }
+
+    if (managedListings.some((item) => item.id === id)) {
+      setManagedListings((items) => {
+        const next = items.map((item) => (item.id === id ? { ...item, promotion, isPromoted: false } : item))
+        persist({ managedListings: next })
+        return next
+      })
+    } else {
+      setListingUpdates((items) => {
+        const next = { ...items, [id]: { ...(items[id] || {}), promotion, isPromoted: false } }
+        persist({ listingUpdates: next })
+        return next
+      })
+    }
+    return updatedListing
+  }, [addModerationHistory, allListings, managedListings, persist])
+
+  const updatePromotionStatus = useCallback((id, status) => {
+    const existing = allListings.find((item) => item.id === id)
+    if (!existing) return null
+    const promotion = {
+      ...(existing.promotion || {}),
+      status,
+      reviewedAt: new Date().toISOString(),
+      expiresAt: status === 'Approved' ? new Date(Date.now() + daysFromDuration(existing.promotion?.duration) * 24 * 60 * 60 * 1000).toISOString() : existing.promotion?.expiresAt,
+    }
+    addModerationHistory({
+      type: 'Feature Approval',
+      listingId: id,
+      listingTitle: existing.title,
+      action: status,
+      note: `Promotion ${status.toLowerCase()}`,
+    })
+    const promotionUpdates = {
+      promotion,
+      isPromoted: status === 'Approved',
+      isFeatured: status === 'Approved' ? true : existing.isFeatured && status !== 'Removed',
+    }
+
+    if (managedListings.some((item) => item.id === id)) {
+      setManagedListings((items) => {
+        const next = items.map((item) => (item.id === id ? { ...item, ...promotionUpdates } : item))
+        persist({ managedListings: next })
+        return next
+      })
+      return { ...existing, ...promotionUpdates }
+    }
+
+    setListingUpdates((items) => {
+      const next = { ...items, [id]: { ...(items[id] || {}), ...promotionUpdates } }
+      persist({ listingUpdates: next })
+      return next
+    })
+    return { ...existing, ...promotionUpdates }
+  }, [addModerationHistory, allListings, managedListings, persist])
 
   const removeListing = useCallback((id) => {
     const existing = allListings.find((item) => item.id === id)
@@ -173,6 +456,13 @@ export function ListingProvider({ children }) {
       availabilityStatus: statusToAvailability('Removed'),
       reviewedAt: new Date().toISOString(),
     }
+    addModerationHistory({
+      type: 'Listing Moderation',
+      listingId: id,
+      listingTitle: existing.title,
+      action: 'Removed',
+      note: 'Listing removed from marketplace',
+    })
 
     if (managedListings.some((item) => item.id === id)) {
       setManagedListings((items) => {
@@ -189,7 +479,7 @@ export function ListingProvider({ children }) {
       return next
     })
     return removedListing
-  }, [allListings, managedListings, persist])
+  }, [addModerationHistory, allListings, managedListings, persist])
 
   const reportListing = useCallback((listingId, payload = {}) => {
     const listing = allListings.find((item) => item.id === listingId)
@@ -220,12 +510,22 @@ export function ListingProvider({ children }) {
   }, [allListings, persist, reports])
 
   const updateReportStatus = useCallback((id, status) => {
+    const report = reports.find((item) => item.id === id)
     setReports((items) => {
       const next = items.map((item) => (item.id === id ? { ...item, status, reviewedAt: new Date().toISOString() } : item))
       persist({ reports: next })
       return next
     })
-  }, [persist])
+    if (report) {
+      addModerationHistory({
+        type: 'Report Handling',
+        listingId: report.listingId,
+        listingTitle: report.listingTitle,
+        action: status,
+        note: report.reason,
+      })
+    }
+  }, [addModerationHistory, persist, reports])
 
   const getListing = useCallback((id) => allListings.find((item) => item.id === id), [allListings])
 
@@ -234,8 +534,10 @@ export function ListingProvider({ children }) {
     const type = filters.listingType || 'all'
     const selectedTypes = (filters.propertyTypes || []).flatMap(resolveCategoryValues)
     const selectedAmenities = filters.amenities || []
+    const agentId = filters.agentId || ''
     const minBeds = parseMinimum(filters.beds)
     const minBaths = parseMinimum(filters.baths)
+    const minPrice = Number(filters.minPrice || 0) * 1000000
     const maxPrice = Number(filters.price || 100) * 1000000
 
     let results = allListings.filter((property) => {
@@ -244,11 +546,12 @@ export function ListingProvider({ children }) {
       const matchesType = type === 'all' || property.type === type
       const matchesCategory = selectedTypes.length === 0 || selectedTypes.includes(property.category)
       const matchesAmenities = selectedAmenities.every((amenity) => property.amenities.includes(amenity))
+      const matchesAgent = !agentId || agentIdFromAgent(property.agent) === agentId
       const matchesBeds = minBeds === 0 || property.beds >= minBeds
       const matchesBaths = minBaths === 0 || property.baths >= minBaths
-      const matchesPrice = property.price <= maxPrice || property.priceType === 'total'
+      const matchesPrice = property.price >= minPrice && property.price <= maxPrice
 
-      return matchesQuery && matchesType && matchesCategory && matchesAmenities && matchesBeds && matchesBaths && matchesPrice
+      return matchesQuery && matchesType && matchesCategory && matchesAmenities && matchesAgent && matchesBeds && matchesBaths && matchesPrice
     })
 
     if (filters.sort === 'price-low') results = [...results].sort((a, b) => a.price - b.price)
@@ -263,15 +566,24 @@ export function ListingProvider({ children }) {
     allListings,
     managedListings,
     reports,
+    listingAnalytics,
+    moderationHistory,
     createListing,
     updateListing,
     updateListingModeration,
+    requestPromotion,
+    cloneListing,
+    updatePromotionStatus,
     removeListing,
     reportListing,
     updateReportStatus,
+    trackListingView,
+    trackListingFavorite,
+    trackListingInquiry,
     getListing,
     searchListings,
-  }), [allListings, createListing, getListing, managedListings, removeListing, reportListing, reports, searchListings, updateListing, updateListingModeration, updateReportStatus])
+    addModerationHistory,
+  }), [addModerationHistory, allListings, cloneListing, createListing, getListing, listingAnalytics, managedListings, moderationHistory, removeListing, reportListing, reports, requestPromotion, searchListings, trackListingFavorite, trackListingInquiry, trackListingView, updateListing, updateListingModeration, updatePromotionStatus, updateReportStatus])
 
   return <ListingContext.Provider value={value}>{children}</ListingContext.Provider>
 }

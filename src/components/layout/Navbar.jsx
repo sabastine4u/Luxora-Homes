@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { navLinks } from '../../data/marketplace'
 import { useAuth } from '../../context/AuthContext'
 import { useFavoriteProperties } from '../../hooks/useSocialHooks'
@@ -9,9 +9,17 @@ import Icon from '../common/Icon'
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
   const { favoriteIds } = useFavoriteProperties()
+  const navigate = useNavigate()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState(null)
+  const dashboardPath = user ? `/dashboard/${user.role === 'admin' ? 'admin' : user.role === 'agent' ? 'agent' : 'user'}` : '/auth/login'
+
+  const handleLogout = () => {
+    logout()
+    setIsOpen(false)
+    navigate('/auth/login')
+  }
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 18)
@@ -60,12 +68,12 @@ export default function Navbar() {
 
         <div className="nav-actions">
           <Link className="icon-button" aria-label="Search" to="/listings"><Icon name="search" /></Link>
-          <Link className={`icon-button ${favoriteIds.length ? 'has-badge' : ''}`} aria-label="Saved homes" to="/dashboard/user"><Icon name="heart" /></Link>
-          <Link className="icon-button has-alert" aria-label="Notifications" to="/dashboard/user/notifications"><Icon name="bell" /></Link>
+          <Link className={`icon-button ${favoriteIds.length ? 'has-badge' : ''}`} aria-label="Saved homes" to={isAuthenticated ? `${dashboardPath}/saved-properties` : '/auth/login'}><Icon name="heart" /></Link>
+          <Link className="icon-button has-alert" aria-label="Notifications" to={isAuthenticated ? `${dashboardPath}/notifications` : '/auth/login'}><Icon name="bell" /></Link>
           {isAuthenticated ? (
             <>
-              <Button variant="ghost" href={`/dashboard/${user.role === 'admin' ? 'admin' : user.role === 'agent' ? 'agent' : 'user'}`}>{user.name.split(' ')[0]}</Button>
-              <button className="btn btn-outline" type="button" onClick={logout}>Sign Out</button>
+              <Button variant="ghost" href={dashboardPath}>{user.name.split(' ')[0]}</Button>
+              <button className="btn btn-outline" type="button" onClick={handleLogout}>Sign Out</button>
             </>
           ) : (
             <>
@@ -99,7 +107,10 @@ export default function Navbar() {
             </div>
           ))}
           {isAuthenticated ? (
-            <Button href={`/dashboard/${user.role}`} onClick={() => setIsOpen(false)}>Dashboard</Button>
+            <>
+              <Button href={dashboardPath} onClick={() => setIsOpen(false)}>Dashboard</Button>
+              <button className="btn btn-outline" type="button" onClick={handleLogout}>Sign Out</button>
+            </>
           ) : (
             <>
               <Button variant="outline" href="/auth/login">Sign In</Button>

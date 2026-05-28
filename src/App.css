@@ -304,6 +304,35 @@ button:disabled,
   grid-template-columns: minmax(240px, 0.45fr) 1fr;
 }
 
+.property-map {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+}
+
+.property-map .leaflet-container {
+  width: 100%;
+  min-height: inherit;
+  height: 100%;
+  background: var(--surface-strong);
+}
+
+.map-popup {
+  display: grid;
+  gap: 6px;
+}
+
+.map-popup span,
+.map-popup a {
+  color: #1d1d1d;
+}
+
+.map-popup a {
+  font-weight: 700;
+}
+
 .empty-state {
   grid-column: 1 / -1;
   padding: 64px 24px;
@@ -537,6 +566,14 @@ button:disabled,
   border-radius: var(--radius);
   color: var(--gold-light);
   background: var(--surface-strong);
+}
+
+.property-description {
+  white-space: pre-line;
+}
+
+.price-history-table {
+  margin-top: 14px;
 }
 
 .payment-grid {
@@ -2667,6 +2704,14 @@ select {
   min-height: 220px;
   justify-content: center;
   color: var(--gold-light);
+}
+
+.floor-plan iframe,
+.floor-plan video {
+  width: 100%;
+  min-height: 320px;
+  border: 0;
+  border-radius: calc(var(--radius) - 4px);
 }
 
 .contact-form {
