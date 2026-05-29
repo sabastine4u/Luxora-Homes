@@ -1,6 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import DashboardSidebar from '../components/dashboard/DashboardSidebar'
+import BulkListingControls from '../components/dashboard/BulkListingControls'
+import CsvImportPanel from '../components/dashboard/CsvImportPanel'
 import MessagesPanel from '../components/dashboard/MessagesPanel'
 import Icon from '../components/common/Icon'
 import PropertyCard from '../components/property/PropertyCard'
@@ -58,10 +60,57 @@ const dashboardExtras = {
 const leadStatuses = ['New', 'Contacted', 'Viewing Scheduled', 'Negotiating', 'Closed', 'Lost']
 const promotionPackages = ['Featured', 'Spotlight', 'Premium']
 const promotionDurations = ['7 days', '14 days', '30 days']
+const listingStatusFilters = ['Active', 'Pending', 'Sold']
+const moderationStatusOptions = [...new Set([...listingStatuses, 'Rejected', 'Suspended', 'Removed'])]
+const promotionPrices = {
+  Featured: 15000,
+  Spotlight: 25000,
+  Premium: 45000,
+}
 
 const formatPrice = (price) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(price)
 const slugFromLabel = (value = '') => value.toLowerCase().replaceAll(' ', '-')
 const listParamFromValues = (values = []) => values.map((value) => encodeURIComponent(value)).join(',')
+const moderationEditableFields = (listing = {}) => ({
+  title: listing.title || '',
+  price: listing.price ?? '',
+  category: listing.category || 'Apartment',
+  status: listing.status || listing.moderationStatus || listing.availabilityStatus || 'Pending',
+  description: listing.description || '',
+})
+const weeksFromDuration = (duration = '7 days') => Math.max(1, Math.ceil((Number.parseInt(duration, 10) || 7) / 7))
+const promotionSummaryFor = (promotion = {}) => {
+  const selectedPackage = promotion.package || 'Featured'
+  const duration = promotion.duration || '7 days'
+  const durationWeeks = weeksFromDuration(duration)
+  const weeklyPrice = promotionPrices[selectedPackage] || promotionPrices.Featured
+  return {
+    selectedPackage,
+    duration,
+    durationWeeks,
+    weeklyPrice,
+    estimatedTotal: weeklyPrice * durationWeeks,
+  }
+}
+const verificationExpiryStatus = (verification = {}) => {
+  if (!verification.reviewedAt) return { label: 'Pending', expiryDate: null }
+  const expiryDate = new Date(verification.reviewedAt)
+  expiryDate.setMonth(expiryDate.getMonth() + 12)
+  const daysUntilExpiry = Math.ceil((expiryDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+  if (daysUntilExpiry < 0) return { label: 'Expired', expiryDate }
+  if (daysUntilExpiry <= 30) return { label: 'Expiring Soon', expiryDate }
+  return { label: 'Active', expiryDate }
+}
+const mockListingMetrics = (listing = {}) => {
+  const seed = listing.id?.toString().split('').reduce((total, char) => total + char.charCodeAt(0), 0) || 12
+  const views = 80 + (seed * 17) % 1600
+  return {
+    views,
+    favorites: Math.round(views * (0.05 + (seed % 7) / 100)),
+    inquiries: Math.max(1, Math.round(views * (0.015 + (seed % 5) / 160))),
+    promotions: listing.isPromoted || listing.isFeatured ? 1 : 0,
+  }
+}
 
 const agentIdentityIdsForUser = (user = {}) => [
   user.id,
@@ -414,6 +463,7 @@ function NotificationSettingsForm({ user, onSave }) {
 
 function PromotionRequestModal({ listing, onClose, onSubmit }) {
   const [form, setForm] = useState({ package: 'Featured', duration: '14 days', paymentConfirmed: false })
+  const promotionSummary = promotionSummaryFor(form)
 
   const submitPromotion = (event) => {
     event.preventDefault()
@@ -434,6 +484,9 @@ function PromotionRequestModal({ listing, onClose, onSubmit }) {
         <label>Listing<input value={listing?.title || ''} readOnly /></label>
         <label>Package<select value={form.package} onChange={(event) => setForm({ ...form, package: event.target.value })}>{promotionPackages.map((item) => <option key={item}>{item}</option>)}</select></label>
         <label>Duration<select value={form.duration} onChange={(event) => setForm({ ...form, duration: event.target.value })}>{promotionDurations.map((item) => <option key={item}>{item}</option>)}</select></label>
+        <label>Selected Package<input value={promotionSummary.selectedPackage} readOnly /></label>
+        <label>Selected Duration<input value={promotionSummary.duration} readOnly /></label>
+        <label>Estimated Total<input value={`${formatPrice(promotionSummary.estimatedTotal)} (${formatPrice(promotionSummary.weeklyPrice)} x ${promotionSummary.durationWeeks} week${promotionSummary.durationWeeks > 1 ? 's' : ''})`} readOnly /></label>
         <label className="check-label"><input type="checkbox" checked={form.paymentConfirmed} onChange={(event) => setForm({ ...form, paymentConfirmed: event.target.checked })} /> Confirm simulated payment</label>
         <button className="btn btn-primary" type="submit" disabled={!form.paymentConfirmed}>Request Promotion</button>
       </form>
@@ -538,12 +591,15 @@ export default function DashboardPage({ variant = 'user' }) {
   const [selectedInquiry, setSelectedInquiry] = useState(null)
   const [promotionTarget, setPromotionTarget] = useState(null)
   const [moderationTarget, setModerationTarget] = useState(null)
+  const [moderationEdits, setModerationEdits] = useState({})
   const [adminTarget, setAdminTarget] = useState(null)
   const [adminReason, setAdminReason] = useState('')
   const [replyForm, setReplyForm] = useState({ status: 'Contacted', message: '' })
   const [leadNote, setLeadNote] = useState('')
   const [templateForm, setTemplateForm] = useState({ title: '', message: '' })
   const [viewingForm, setViewingForm] = useState({ date: '', time: '' })
+  const [listingStatusFilter, setListingStatusFilter] = useState('Active')
+  const [selectedListingIds, setSelectedListingIds] = useState([])
   const [analyticsToday] = useState(() => Date.now())
   const data = content[variant]
   const extras = dashboardExtras[variant]
@@ -578,9 +634,14 @@ export default function DashboardPage({ variant = 'user' }) {
     if (property.agent?.id && ids.length) return ids.includes(property.agent.id)
     return property.agent.name === (user?.name || 'Sarah Agent')
   })
-  const agentListingIds = agentListings.map((property) => property.id)
-  const agentMetrics = agentListingIds.reduce((totals, id) => {
-    const metrics = listingAnalytics[id] || {}
+  const currentAgentProfile = {
+    id: user?.id || 'sarah-agent',
+    name: user?.name || 'Sarah Agent',
+    image: user?.image || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=70',
+    verificationStatus: user?.agentVerification?.status || (user?.role === 'agent' ? 'Pending' : 'Verified'),
+  }
+  const agentMetrics = agentListings.reduce((totals, property) => {
+    const metrics = { ...mockListingMetrics(property), ...(listingAnalytics[property.id] || {}) }
     return {
       views: totals.views + (metrics.views || 0),
       favorites: totals.favorites + (metrics.favorites || 0),
@@ -597,6 +658,9 @@ export default function DashboardPage({ variant = 'user' }) {
   }, 0) / agentListings.length) : 0
   const conversionRate = relevantMessages.length ? Math.round((relevantMessages.filter((message) => message.status === 'Closed').length / relevantMessages.length) * 100) : 0
   const promotionRequests = allListings.filter((property) => property.promotion?.status === 'Requested' || property.promotion?.status === 'Approved')
+  const openReportListingIds = new Set(reports.filter((report) => report.status === 'Open').map((report) => report.listingId))
+  const verificationAgents = registeredUsers.filter((item) => item.role === 'agent' || item.accountType === 'agent')
+  const listingModerationStatus = (property = {}) => property.moderationStatus || property.status || property.availabilityStatus || 'Pending'
   const platformAnalytics = {
     users: registeredUsers.length,
     activeListings: allListings.filter((property) => ['Active', 'Available'].includes(property.status || property.availabilityStatus)).length,
@@ -608,6 +672,11 @@ export default function DashboardPage({ variant = 'user' }) {
     verifiedAgents: registeredUsers.filter((item) => (item.role === 'agent' || item.accountType === 'agent') && item.agentVerification?.status === 'Approved').length,
     featuredListings: allListings.filter((property) => property.isFeatured).length,
     promotions: promotionRequests.length,
+    approvedListings: allListings.filter((property) => ['Active', 'Approved'].includes(listingModerationStatus(property))).length,
+    rejectedListings: allListings.filter((property) => listingModerationStatus(property) === 'Rejected').length,
+    flaggedListings: allListings.filter((property) => openReportListingIds.has(property.id)).length,
+    moderationPendingListings: allListings.filter((property) => listingModerationStatus(property) === 'Pending').length,
+    pendingVerifications: verificationAgents.filter((item) => !item.agentVerification?.reviewedAt || item.agentVerification?.status === 'Pending').length,
   }
   const dashboardProperties = variant === 'user'
     ? (favoriteProperties.length ? favoriteProperties : allListings.slice(0, 4))
@@ -619,10 +688,12 @@ export default function DashboardPage({ variant = 'user' }) {
     : variant === 'agent'
       ? [['Active Listings', agentListings.filter((property) => property.status === 'Active').length.toString(), `${averageDaysOnMarket} avg days`], ['Response Rate', `${responseRate}%`, unreadInquiryCount ? `${unreadInquiryCount} new` : '+live'], ['Conversion Rate', `${conversionRate}%`, `${agentMetrics.inquiries} inquiries`], ['Engagement', `${engagementRate}%`, `${agentMetrics.views} views`]]
       : [
-        ['Registered Users', platformAnalytics.users.toString(), `${platformAnalytics.verifiedAgents} verified agents`],
-        ['Active Listings', platformAnalytics.activeListings.toString(), `${platformAnalytics.pendingListings} pending / ${platformAnalytics.closedListings} closed`],
-        ['Inquiries', platformAnalytics.inquiries.toString(), `${platformAnalytics.savedProperties} saved homes`],
-        ['Reports', platformAnalytics.reports.toString(), `${platformAnalytics.featuredListings} featured / ${platformAnalytics.promotions} promos`],
+        ['Approved Listings', platformAnalytics.approvedListings.toString(), `${platformAnalytics.featuredListings} featured`],
+        ['Rejected Listings', platformAnalytics.rejectedListings.toString(), 'moderation'],
+        ['Flagged Listings', platformAnalytics.flaggedListings.toString(), `${platformAnalytics.reports} reports`],
+        ['Pending Listings', platformAnalytics.moderationPendingListings.toString(), 'awaiting review'],
+        ['Verified Agents', platformAnalytics.verifiedAgents.toString(), `${platformAnalytics.users} users`],
+        ['Pending Verifications', platformAnalytics.pendingVerifications.toString(), 'agent queue'],
       ]
   const sectionTitle = activeSection.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
   const sectionRows = (() => {
@@ -640,11 +711,14 @@ export default function DashboardPage({ variant = 'user' }) {
       if (activeSection === 'messages' || activeSection === 'leads') return relevantMessages.length ? relevantMessages.map((message) => [message.seekerName || message.name, message.propertyReference || message.propertyTitle || message.propertyId, message.status, message.id]) : extras.secondary
       if (activeSection === 'appointments') return viewings.length ? viewings.map((viewing) => [viewing.propertyTitle || viewing.property || 'Property viewing', `${viewing.date} ${viewing.time}`, viewing.status]) : extras.tableRows
       if (activeSection === 'analytics') return agentListings.length ? [
+        ['Total Views', agentMetrics.views.toString(), `${Math.max(0, Math.round(agentMetrics.views * 0.18))} weekly / ${Math.max(0, Math.round(agentMetrics.views * 0.52))} monthly`],
+        ['Favorites Count', agentMetrics.favorites.toString(), `${Math.max(0, Math.round(agentMetrics.favorites * 0.2))} weekly / ${Math.max(0, Math.round(agentMetrics.favorites * 0.6))} monthly`],
+        ['Inquiry Count', agentMetrics.inquiries.toString(), `${Math.max(0, Math.round(agentMetrics.inquiries * 0.25))} weekly / ${Math.max(0, Math.round(agentMetrics.inquiries * 0.7))} monthly`],
         ['Response Rate', `${responseRate}%`, `${agentRespondedMessages.length}/${relevantMessages.length || 0} replied`],
         ['Average Days on Market', `${averageDaysOnMarket} days`, `${agentListings.length} listings`],
         ['Conversion Rate', `${conversionRate}%`, `${relevantMessages.filter((message) => message.status === 'Closed').length} closed`],
         ...agentListings.map((property) => {
-        const metrics = listingAnalytics[property.id] || {}
+        const metrics = { ...mockListingMetrics(property), ...(listingAnalytics[property.id] || {}) }
         const engagement = metrics.views ? `${Math.round((((metrics.favorites || 0) + (metrics.inquiries || 0)) / metrics.views) * 100)}% engagement` : '0% engagement'
         return [property.title, `${metrics.views || 0} views / ${metrics.favorites || 0} saves`, `${metrics.inquiries || 0} inquiries / ${engagement}`]
       })] : [['Response Rate', `${responseRate}%`, '+live'], ['Average Days on Market', `${averageDaysOnMarket} days`, '+live'], ['Conversion Rate', `${conversionRate}%`, '+live']]
@@ -660,6 +734,9 @@ export default function DashboardPage({ variant = 'user' }) {
     }
     return extras.tableRows
   })()
+  const visibleSectionRows = variant === 'agent' && activeSection === 'my-listings'
+    ? sectionRows.filter((row) => row[2] === listingStatusFilter)
+    : sectionRows
 
   const handleRowAction = (row) => {
     if (activeSection === 'recently-viewed' && row[3]) {
@@ -737,6 +814,7 @@ export default function DashboardPage({ variant = 'user' }) {
       reportStatus: row[2],
       source: activeSection,
     })
+    setModerationEdits(moderationEditableFields(listing))
   }
 
   const openAdminTarget = (row) => {
@@ -771,8 +849,22 @@ export default function DashboardPage({ variant = 'user' }) {
     notify(`Agent verification ${status.toLowerCase()}.`)
   }
 
+  const saveModerationChanges = () => {
+    if (!moderationTarget) return null
+    const updated = updateListing(moderationTarget.listing.id, moderationEdits)
+    if (updated) {
+      setModerationTarget((current) => current ? { ...current, listing: { ...current.listing, ...updated } } : current)
+    }
+    return updated
+  }
+
+  const updateModerationEdit = (field, value) => {
+    setModerationEdits((current) => ({ ...current, [field]: value }))
+  }
+
   const applyModerationAction = (status) => {
     if (!moderationTarget) return
+    saveModerationChanges()
     if (status === 'Removed') {
       removeListing(moderationTarget.listing.id)
     } else if (!['Report Reviewed', 'Report Dismissed'].includes(status)) {
@@ -788,6 +880,7 @@ export default function DashboardPage({ variant = 'user' }) {
 
   const applyPromotionAction = (status) => {
     if (!moderationTarget) return
+    saveModerationChanges()
     updatePromotionStatus(moderationTarget.listing.id, status)
     setModerationTarget(null)
     notify(status === 'Approved' ? 'Promotion approved.' : 'Promotion removed.')
@@ -855,6 +948,28 @@ export default function DashboardPage({ variant = 'user' }) {
     navigate(`/dashboard/agent/edit-listing/${cloned.id}`)
   }
 
+  const toggleListingSelection = (id) => {
+    setSelectedListingIds((items) => (items.includes(id) ? items.filter((item) => item !== id) : [...items, id]))
+  }
+
+  const applyBulkListingStatus = (status) => {
+    selectedListingIds.forEach((id) => {
+      const listing = getListing(id)
+      if (listing) updateListing(id, { ...listing, status })
+    })
+    notify(`${selectedListingIds.length} listing${selectedListingIds.length === 1 ? '' : 's'} updated.`)
+    setSelectedListingIds([])
+  }
+
+  const updateLeadStatus = (id, status) => {
+    updateMessageStatus(id, status)
+    notify(`Lead moved to ${status}.`)
+  }
+
+  const handleCsvImported = (count) => {
+    notify(`${count} listing${count === 1 ? '' : 's'} imported from CSV.`)
+  }
+
   const handleListingSubmit = (payload) => {
     if (['seller', 'agent'].includes(user?.accountType) || user?.role === 'agent') {
       if (!user?.emailVerified || !user?.phoneVerified) {
@@ -866,21 +981,14 @@ export default function DashboardPage({ variant = 'user' }) {
         return
       }
     }
-    const agent = {
-      id: user?.id || 'sarah-agent',
-      name: user?.name || 'Sarah Agent',
-      image: user?.image || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=70',
-      verificationStatus: user?.agentVerification?.status || (user?.role === 'agent' ? 'Pending' : 'Verified'),
-    }
-
     if (editingListing) {
-      const updated = updateListing(editingListing.id, { ...payload, agent })
+      const updated = updateListing(editingListing.id, { ...payload, agent: currentAgentProfile })
       notify('Listing updated.')
       navigate(`/property/${updated.id}`)
       return
     }
 
-    const created = createListing({ ...payload, agent })
+    const created = createListing({ ...payload, agent: currentAgentProfile })
     notify('Listing created.')
     navigate(`/property/${created.id}`)
   }
@@ -1075,10 +1183,27 @@ export default function DashboardPage({ variant = 'user' }) {
         {activeSection !== 'overview' && activeSection !== 'messages' && !(variant === 'user' && ['saved-searches', 'compare-properties'].includes(activeSection)) && (
           <div className="dashboard-grid">
             <article className="dashboard-panel wide-panel">
-              <div className="panel-heading"><h2>{sectionTitle}</h2><Link to={`/dashboard/${variant}`}>Overview</Link></div>
-              {sectionRows.length ? (
+              <div className="panel-heading">
+                <h2>{sectionTitle}</h2>
+                {variant === 'agent' && activeSection === 'my-listings' ? (
+                  <div className="status-filter-tabs">
+                    {listingStatusFilters.map((status) => (
+                      <button className={listingStatusFilter === status ? 'is-active' : ''} type="button" onClick={() => setListingStatusFilter(status)} key={status}>{status}</button>
+                    ))}
+                  </div>
+                ) : (
+                  <Link to={`/dashboard/${variant}`}>Overview</Link>
+                )}
+              </div>
+              {variant === 'agent' && activeSection === 'my-listings' && (
+                <>
+                  <CsvImportPanel agent={currentAgentProfile} createListing={createListing} onImported={handleCsvImported} />
+                  <BulkListingControls selectedCount={selectedListingIds.length} onApplyStatus={applyBulkListingStatus} onClear={() => setSelectedListingIds([])} />
+                </>
+              )}
+              {visibleSectionRows.length ? (
                 <div className="dashboard-table">
-                  {sectionRows.map((row) => {
+                  {visibleSectionRows.map((row) => {
                     const key = row.join('-')
                     const isListingRow = variant === 'agent' && activeSection === 'my-listings' && row[3]
                     const isInquiryRow = ((variant === 'agent' && ['messages', 'leads'].includes(activeSection)) || (variant === 'user' && activeSection === 'messages')) && row[3]
@@ -1087,12 +1212,25 @@ export default function DashboardPage({ variant = 'user' }) {
                     if (isListingRow) {
                       return (
                         <div className="dashboard-table-row" key={key}>
+                          <label className="listing-select"><input type="checkbox" checked={selectedListingIds.includes(row[3])} onChange={() => toggleListingSelection(row[3])} /> Select</label>
                           <strong>{row[0]}</strong>
                           <span>{row[1]}</span>
                           <em>{rowStatuses[key] || row[2]}</em>
                           <button type="button" onClick={() => navigate(`/dashboard/agent/edit-listing/${row[3]}`)}>Edit</button>
                           <button type="button" onClick={() => handleCloneListing(row[3])}>Clone Listing</button>
                           <button type="button" onClick={() => setPromotionTarget(getListing(row[3]))}>Promote</button>
+                        </div>
+                      )
+                    }
+                    if (variant === 'agent' && activeSection === 'leads' && isInquiryRow) {
+                      return (
+                        <div className="dashboard-table-row lead-pipeline-row" key={key}>
+                          <strong>{row[0]}</strong>
+                          <span>{row[1]}</span>
+                          <select value={rowStatuses[key] || row[2] || 'New'} onChange={(event) => updateLeadStatus(row[3], event.target.value)}>
+                            {leadStatuses.map((status) => <option key={status}>{status}</option>)}
+                          </select>
+                          <button type="button" onClick={() => openInquiry(row[3])}>Open</button>
                         </div>
                       )
                     }
@@ -1155,8 +1293,8 @@ export default function DashboardPage({ variant = 'user' }) {
                 ? viewings.map((viewing) => [viewing.propertyTitle, viewing.date, viewing.time])
                 : variant === 'agent' && relevantMessages.length
                   ? relevantMessages.slice(0, 3).map((message) => [message.seekerName || message.name, message.propertyTitle || message.propertyId, message.status])
-                  : extras.secondary).map(([primary, secondary, meta]) => (
-                <div key={`${primary}-${meta}`}>
+                  : extras.secondary).map(([primary, secondary, meta], index) => (
+                <div key={`${primary || 'item'}-${secondary || 'detail'}-${meta || 'meta'}-${index}`}>
                   <span><Icon name={variant === 'admin' ? 'check' : 'calendar'} /></span>
                   <div><h3>{primary}</h3><p>{secondary}</p></div>
                   <strong>{meta}</strong>
@@ -1224,19 +1362,35 @@ export default function DashboardPage({ variant = 'user' }) {
       {moderationTarget && (
         <div className="contact-modal" role="dialog" aria-modal="true">
           <div className="contact-form">
-            <button className="modal-close" onClick={() => setModerationTarget(null)} type="button">Close</button>
+            <button className="modal-close" onClick={() => { setModerationTarget(null); setModerationEdits({}) }} type="button">Close</button>
             <h2>Moderate Listing</h2>
-            <label>Listing<input value={moderationTarget.listing.title} readOnly /></label>
-            {moderationTarget.report && <label>Listing ID<input value={moderationTarget.report.listingId} readOnly /></label>}
+            <label>Listing ID<input value={moderationTarget.listing.id} readOnly /></label>
+            <label>Title<input value={moderationEdits.title || ''} onChange={(event) => updateModerationEdit('title', event.target.value)} /></label>
+            <label>Price<input type="number" min="0" value={moderationEdits.price ?? ''} onChange={(event) => updateModerationEdit('price', event.target.value)} /></label>
+            <label>Category<select value={moderationEdits.category || 'Apartment'} onChange={(event) => updateModerationEdit('category', event.target.value)}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
+            <label>Status<select value={moderationEdits.status || 'Pending'} onChange={(event) => updateModerationEdit('status', event.target.value)}>{moderationStatusOptions.map((status) => <option key={status}>{status}</option>)}</select></label>
+            <label>Description<textarea rows="4" value={moderationEdits.description || ''} onChange={(event) => updateModerationEdit('description', event.target.value)} /></label>
+            {moderationTarget.report && <label>Report Listing ID<input value={moderationTarget.report.listingId} readOnly /></label>}
             {moderationTarget.report && <label>Reporting User<input value={moderationTarget.report.reporterName || moderationTarget.report.reporterEmail || moderationTarget.report.reporterId} readOnly /></label>}
             {moderationTarget.report && <label>Timestamp<input value={new Date(moderationTarget.report.timestamp || moderationTarget.report.createdAt).toLocaleString()} readOnly /></label>}
             {moderationTarget.report && <label>Report Reason<input value={moderationTarget.report.reason} readOnly /></label>}
             <label>Current Status<input value={moderationTarget.listing.moderationStatus || moderationTarget.listing.status || moderationTarget.listing.availabilityStatus} readOnly /></label>
             <label>Promotion Status<input value={moderationTarget.listing.promotion?.status || 'Not requested'} readOnly /></label>
+            {moderationTarget.listing.promotion?.status && (() => {
+              const summary = promotionSummaryFor(moderationTarget.listing.promotion)
+              return (
+                <>
+                  <label>Selected Package<input value={summary.selectedPackage} readOnly /></label>
+                  <label>Selected Duration<input value={summary.duration} readOnly /></label>
+                  <label>Estimated Promotion Total<input value={`${formatPrice(summary.estimatedTotal)} (${formatPrice(summary.weeklyPrice)} x ${summary.durationWeeks} week${summary.durationWeeks > 1 ? 's' : ''})`} readOnly /></label>
+                </>
+              )
+            })()}
             {moderationTarget.reportId && <label>Report Status<input value={moderationTarget.reportStatus} readOnly /></label>}
             {moderationHistory.filter((item) => item.listingId === moderationTarget.listing.id).slice(0, 4).map((item) => (
               <label key={item.id}>History<input value={`${item.action} - ${item.note}`} readOnly /></label>
             ))}
+            <button className="btn btn-primary" onClick={() => { saveModerationChanges(); notify('Moderation changes saved.') }} type="button">Save Changes</button>
             {moderationTarget.report ? (
               <>
                 <button className="btn btn-primary" onClick={() => applyModerationAction('Report Reviewed')} type="button">Review Report</button>
@@ -1249,6 +1403,7 @@ export default function DashboardPage({ variant = 'user' }) {
             ) : (
               <>
                 <button className="btn btn-primary" onClick={() => applyModerationAction('Active')} type="button">Approve Listing</button>
+                <button className="btn btn-outline" onClick={() => applyModerationAction('Rejected')} type="button">Reject Listing</button>
                 {moderationTarget.listing.promotion?.status === 'Requested' && <button className="btn btn-primary" onClick={() => applyPromotionAction('Approved')} type="button">Approve Promotion</button>}
                 {moderationTarget.listing.promotion?.status && <button className="btn btn-outline" onClick={() => applyPromotionAction('Removed')} type="button">Remove Promotion</button>}
                 {listingStatuses.filter((status) => status !== 'Active').map((status) => (
@@ -1272,9 +1427,32 @@ export default function DashboardPage({ variant = 'user' }) {
             <label>Phone Verification<input value={adminTarget.user.phoneVerified ? 'Verified' : 'Unverified'} readOnly /></label>
             {adminTarget.mode === 'agent' && <label>Company<input value={adminTarget.user.agentVerification?.company || ''} readOnly /></label>}
             {adminTarget.mode === 'agent' && <label>License<input value={adminTarget.user.agentVerification?.license || ''} readOnly /></label>}
-            {adminTarget.mode === 'agent' && (adminTarget.user.agentVerification?.documents || []).map((document) => (
-              <label key={`${document.type}-${document.name}`}>{document.type}<input value={`${document.name} (${Math.round((document.size || 0) / 1024)} KB)`} readOnly /></label>
-            ))}
+            {adminTarget.mode === 'agent' && (() => {
+              const expiry = verificationExpiryStatus(adminTarget.user.agentVerification || {})
+              return (
+                <div className="verification-status-card">
+                  <strong>Verification Expiry</strong>
+                  <span className={`verification-badge ${expiry.label.toLowerCase().replaceAll(' ', '-')}`}>{expiry.label}</span>
+                  <small>{expiry.expiryDate ? `Expires ${expiry.expiryDate.toLocaleDateString()}` : 'Awaiting review'}</small>
+                </div>
+              )
+            })()}
+            {adminTarget.mode === 'agent' && (
+              <div className="verification-document-grid">
+                {(adminTarget.user.agentVerification?.documents || []).length ? (
+                  (adminTarget.user.agentVerification?.documents || []).map((document, index) => (
+                    <div className="verification-document-card" key={`${document.type || 'Document'}-${document.name || index}`}>
+                      <strong>{document.type || 'Document'}</strong>
+                      <span>{document.name || 'Unnamed document'}</span>
+                      <small>{Math.round((document.size || 0) / 1024)} KB / {document.type || 'unknown type'}</small>
+                      <small>{document.uploadedAt ? new Date(document.uploadedAt).toLocaleString() : 'Upload date unavailable'}</small>
+                    </div>
+                  ))
+                ) : (
+                  <div className="verification-document-card"><span>No documents submitted</span></div>
+                )}
+              </div>
+            )}
             {adminTarget.mode === 'agent' && <label>Rejection / Revocation Reason<textarea rows="3" value={adminReason} onChange={(event) => setAdminReason(event.target.value)} placeholder="Reason for rejection or revocation" /></label>}
             {moderationHistory.filter((item) => item.note?.includes(adminTarget.user.name)).slice(0, 3).map((item) => (
               <label key={item.id}>History<input value={`${item.type}: ${item.action}`} readOnly /></label>

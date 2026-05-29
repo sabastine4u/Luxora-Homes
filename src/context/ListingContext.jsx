@@ -65,7 +65,7 @@ const statusToAvailability = (status) => {
   if (status === 'Sold') return 'Sold'
   if (status === 'Rented') return 'Rented'
   if (status === 'Pending') return 'Pending'
-  if (status === 'Off-Market') return 'Off-Market'
+  if (status === 'Off-Market' || status === 'Off Market') return 'Off-Market'
   if (status === 'Expired') return 'Expired'
   if (status === 'Rejected') return 'Rejected'
   if (status === 'Suspended') return 'Suspended'
@@ -142,20 +142,20 @@ const buildListing = (payload, existing = {}) => {
     expiryDate: payload.expiryDate || existing.expiryDate || daysFromNow(60),
     ...existing,
     id: existing.id || `listing-${Date.now()}`,
-    title: payload.title,
-    location: payload.location,
-    price: Number(payload.price),
+    title: payload.title ?? existing.title,
+    location: payload.location ?? existing.location,
+    price: Number(payload.price ?? existing.price),
     priceHistory: payload.priceHistory || existing.priceHistory || [],
     latitude: parseCoordinate(payload.latitude ?? existing.latitude),
     longitude: parseCoordinate(payload.longitude ?? existing.longitude),
-    priceType: priceTypeFromListingType(payload.type),
-    type: payload.type,
-    category: payload.category,
-    beds: Number(payload.beds),
-    baths: Number(payload.baths),
-    sqft: Number(payload.sqft),
-    description: payload.description,
-    amenities: payload.amenities,
+    priceType: priceTypeFromListingType(payload.type ?? existing.type),
+    type: payload.type ?? existing.type,
+    category: payload.category ?? existing.category,
+    beds: Number(payload.beds ?? existing.beds ?? 0),
+    baths: Number(payload.baths ?? existing.baths ?? 0),
+    sqft: Number(payload.sqft ?? existing.sqft ?? 0),
+    description: payload.description ?? existing.description ?? '',
+    amenities: payload.amenities ?? existing.amenities ?? [],
     floorPlan: payload.floorPlan ?? existing.floorPlan ?? '',
     nearbyAmenities: payload.nearbyAmenities || existing.nearbyAmenities || {},
     neighborhood: payload.neighborhood || existing.neighborhood || {},

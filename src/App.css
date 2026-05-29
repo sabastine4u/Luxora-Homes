@@ -937,6 +937,23 @@ button:disabled,
   padding: 0 12px;
 }
 
+.dashboard-signout {
+  border-color: rgba(255, 94, 94, 0.58) !important;
+  background: rgba(255, 94, 94, 0.16) !important;
+  color: var(--danger) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 94, 94, 0.08);
+}
+
+.dashboard-signout:hover {
+  border-color: rgba(255, 94, 94, 0.82) !important;
+  background: rgba(255, 94, 94, 0.24) !important;
+}
+
+.dashboard-signout:focus-visible {
+  outline: 2px solid rgba(255, 94, 94, 0.55);
+  outline-offset: 2px;
+}
+
 .dashboard-main {
   padding: 32px;
 }
@@ -1012,9 +1029,72 @@ button:disabled,
   padding: 22px;
 }
 
+.verification-status-card,
+.verification-document-card {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.verification-status-card {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.verification-status-card small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+
+.verification-badge {
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #15140f;
+  background: var(--gold);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.verification-badge.expiring-soon {
+  background: var(--gold-light);
+}
+
+.verification-badge.expired {
+  color: var(--text);
+  background: rgba(255, 94, 94, 0.22);
+}
+
+.verification-badge.pending {
+  color: var(--muted-strong);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.verification-document-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.verification-document-card span,
+.verification-document-card small {
+  overflow-wrap: anywhere;
+}
+
+.verification-document-card span {
+  color: var(--muted-strong);
+}
+
+.verification-document-card small {
+  color: var(--muted);
+}
+
 .panel-heading {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -1025,6 +1105,80 @@ button:disabled,
 
 .panel-heading a {
   color: var(--gold-light);
+}
+
+.status-filter-tabs,
+.bulk-listing-controls,
+.bulk-listing-controls div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-filter-tabs button,
+.bulk-listing-controls button {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--muted-strong);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  font-weight: 750;
+  min-height: 36px;
+  padding: 0 11px;
+}
+
+.status-filter-tabs button.is-active {
+  color: #15140f;
+  border-color: transparent;
+  background: var(--gold);
+}
+
+.bulk-listing-controls,
+.csv-import-panel {
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.bulk-listing-controls {
+  justify-content: space-between;
+}
+
+.csv-import-panel,
+.csv-import-panel label,
+.csv-import-errors {
+  display: grid;
+  gap: 8px;
+}
+
+.csv-import-panel label {
+  color: var(--muted-strong);
+  font-weight: 750;
+}
+
+.csv-import-panel input {
+  max-width: 100%;
+}
+
+.listing-select {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted-strong);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.lead-pipeline-row select {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0 10px;
 }
 
 .compact-list,
@@ -1142,6 +1296,14 @@ button:disabled,
 .dashboard-table div,
 .dashboard-table button {
   grid-template-columns: 1fr 1.2fr auto;
+}
+
+.dashboard-table .dashboard-table-row {
+  grid-template-columns: minmax(84px, auto) minmax(150px, 1fr) minmax(180px, 1.1fr) auto auto auto auto;
+}
+
+.dashboard-table .lead-pipeline-row {
+  grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.2fr) minmax(160px, auto) auto;
 }
 
 .messages-dashboard-grid {
@@ -2593,6 +2755,8 @@ select {
   }
 
   .dashboard-table div,
+  .dashboard-table .dashboard-table-row,
+  .dashboard-table .lead-pipeline-row,
   .task-list div {
     grid-template-columns: 1fr;
   }
