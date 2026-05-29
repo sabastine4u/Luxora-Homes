@@ -131,6 +131,8 @@ export default function PropertyDetailsPage() {
       propertyReference: `${property.title} (${property.id})`,
       agent: property.agent.name,
       owner: property.agent.name,
+      agentId: property.agent.id,
+      ownerAgentId: property.agent.id,
     })
     addMessage(lead)
     trackListingInquiry(property.id)
@@ -143,7 +145,7 @@ export default function PropertyDetailsPage() {
       notify('Sign in to schedule a viewing.', 'warning')
       return
     }
-    const viewing = await createViewing({ propertyId: property.id, propertyTitle: property.title, agent: property.agent.name })
+    const viewing = await createViewing({ propertyId: property.id, propertyTitle: property.title, agent: property.agent.name, agentId: property.agent.id, ownerAgentId: property.agent.id })
     addViewing(viewing)
     notify('Viewing scheduled in your dashboard.')
   }

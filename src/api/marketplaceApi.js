@@ -13,6 +13,8 @@ const users = [
   },
   {
     id: 'agent-1',
+    agentProfileId: 'sarah-johnson',
+    agentProfileIds: ['sarah-johnson'],
     name: 'Sarah Agent',
     email: 'agent@luxora.demo',
     password: 'password',

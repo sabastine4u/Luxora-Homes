@@ -9,7 +9,7 @@ const normalizeEmail = (email = '') => email.trim().toLowerCase()
 
 const demoUsers = [
   { id: 'user-1', name: 'John Doe', email: 'john@luxora.demo', password: 'password', role: 'user', phone: '+234 800 123 4567', accountType: 'buyer', accountStatus: 'Active', emailVerified: true, phoneVerified: true },
-  { id: 'agent-1', name: 'Sarah Agent', email: 'agent@luxora.demo', password: 'password', role: 'agent', phone: '+234 802 345 6789', accountType: 'agent', accountStatus: 'Active', emailVerified: true, phoneVerified: true, agentVerification: { status: 'Approved', company: 'Luxora Demo Realty', license: 'REBN/2026/00001', documents: [] } },
+  { id: 'agent-1', agentProfileId: 'sarah-johnson', agentProfileIds: ['sarah-johnson'], name: 'Sarah Agent', email: 'agent@luxora.demo', password: 'password', role: 'agent', phone: '+234 802 345 6789', accountType: 'agent', accountStatus: 'Active', emailVerified: true, phoneVerified: true, agentVerification: { status: 'Approved', company: 'Luxora Demo Realty', license: 'REBN/2026/00001', documents: [] } },
   { id: 'admin-1', name: 'Admin', email: 'admin@luxora.demo', password: 'password', role: 'admin', phone: '+234 803 456 7890', accountType: 'admin', accountStatus: 'Active', emailVerified: true, phoneVerified: true },
 ]
 

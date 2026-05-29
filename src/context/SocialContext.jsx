@@ -84,6 +84,20 @@ const searchLabel = (criteria = {}) => {
 
 const searchKey = (criteria = {}) => JSON.stringify(normalizeCriteria(criteria))
 
+const agentIdentityIds = (agent = {}) => [
+  agent.id,
+  agent.agentId,
+  agent.agentProfileId,
+  ...(agent.agentProfileIds || []),
+].filter(Boolean)
+
+const messageAgentIds = (message = {}) => [
+  message.agentUserId,
+  message.ownerId,
+  message.agentId,
+  message.ownerAgentId,
+].filter(Boolean)
+
 export function SocialProvider({ children }) {
   const { registeredUsers, user } = useAuth()
   const userKey = useMemo(() => userStorageKey(user), [user])
@@ -149,26 +163,34 @@ function SocialStateProvider({ children, registeredUsers, user, userKey }) {
     localStorage.setItem(userStorageKey(targetUser, 'replyTemplates'), JSON.stringify(next.replyTemplates))
   }, [])
 
-  const copyMessageToAgent = useCallback((message) => {
+  const findAgentForMessage = useCallback((message) => {
+    const assignedAgentIds = messageAgentIds(message)
+    if (assignedAgentIds.length) {
+      return registeredUsers.find((item) => item.id !== user?.id && agentIdentityIds(item).some((id) => assignedAgentIds.includes(id)))
+    }
+    if (message.copiedToAgentId) return registeredUsers.find((item) => item.id === message.copiedToAgentId)
     const agentName = message.owner || message.agent
-    if (!agentName) return
-    const targetUser = registeredUsers.find((item) => item.id !== user?.id && [item.name, item.email].includes(agentName))
-      || registeredUsers.find((item) => item.id !== user?.id && item.role === 'agent')
+    return registeredUsers.find((item) => item.id !== user?.id && [item.name, item.email].includes(agentName))
+  }, [registeredUsers, user])
+
+  const copyMessageToAgent = useCallback((message) => {
+    const targetUser = findAgentForMessage(message)
     if (!targetUser) return
     const targetState = hydrateSocialStateByKey(userStorageKey(targetUser), targetUser)
     if (targetState.messages.some((item) => item.id === message.id)) return
-    persistStateForUser(targetUser, { ...targetState, messages: [message, ...targetState.messages] })
-  }, [persistStateForUser, registeredUsers, user])
+    persistStateForUser(targetUser, { ...targetState, messages: [{ ...message, copiedToAgentId: targetUser.id }, ...targetState.messages] })
+  }, [findAgentForMessage, persistStateForUser])
 
   const syncMessageForUser = useCallback((targetUser, id, updater) => {
     if (!targetUser) return
+    if (targetUser.id === user?.id) return
     const targetState = hydrateSocialStateByKey(userStorageKey(targetUser), targetUser)
     if (!targetState.messages.some((item) => item.id === id)) return
     persistStateForUser(targetUser, {
       ...targetState,
       messages: targetState.messages.map((item) => (item.id === id ? updater(item) : item)),
     })
-  }, [persistStateForUser])
+  }, [persistStateForUser, user])
 
   const toggleFavorite = useCallback((id) => {
     setFavoriteIds((items) => {
@@ -294,6 +316,8 @@ function SocialStateProvider({ children, registeredUsers, user, userKey }) {
       propertyReference: savedViewing.propertyTitle,
       agent: savedViewing.agent,
       owner: savedViewing.agent,
+      agentId: savedViewing.agentId,
+      ownerAgentId: savedViewing.ownerAgentId || savedViewing.agentId,
       message: `Viewing scheduled for ${savedViewing.propertyTitle}.`,
       status: 'New',
       isRead: false,
@@ -342,7 +366,7 @@ function SocialStateProvider({ children, registeredUsers, user, userKey }) {
     setMessages((items) => {
       const next = items.map((item) => (
         item.id === id
-          ? { ...item, replies: [savedReply, ...(item.replies || [])], isRead: true }
+          ? { ...item, replies: [savedReply, ...(item.replies || [])], isRead: true, status: savedReply.status || item.status }
           : item
       ))
       persist({ messages: next })
@@ -350,9 +374,11 @@ function SocialStateProvider({ children, registeredUsers, user, userKey }) {
     })
     if (currentMessage) {
       const seeker = registeredUsers.find((item) => item.id === currentMessage.seekerId || item.email === currentMessage.seekerEmail || item.email === currentMessage.email)
+      const agent = findAgentForMessage(currentMessage)
       syncMessageForUser(seeker, id, (item) => ({ ...item, replies: [savedReply, ...(item.replies || [])], isRead: false, status: reply.status || item.status }))
+      syncMessageForUser(agent, id, (item) => ({ ...item, replies: [savedReply, ...(item.replies || [])], isRead: false, status: reply.status || item.status }))
     }
-  }, [persist, registeredUsers, syncMessageForUser])
+  }, [findAgentForMessage, persist, registeredUsers, syncMessageForUser])
 
   const dismissNotification = useCallback((id) => {
     setNotifications((items) => {

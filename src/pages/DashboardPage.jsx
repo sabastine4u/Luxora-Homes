@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import DashboardSidebar from '../components/dashboard/DashboardSidebar'
+import MessagesPanel from '../components/dashboard/MessagesPanel'
 import Icon from '../components/common/Icon'
 import PropertyCard from '../components/property/PropertyCard'
 import { useAuth } from '../context/AuthContext'
@@ -61,6 +62,34 @@ const promotionDurations = ['7 days', '14 days', '30 days']
 const formatPrice = (price) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(price)
 const slugFromLabel = (value = '') => value.toLowerCase().replaceAll(' ', '-')
 const listParamFromValues = (values = []) => values.map((value) => encodeURIComponent(value)).join(',')
+
+const agentIdentityIdsForUser = (user = {}) => [
+  user.id,
+  user.agentId,
+  user.agentProfileId,
+  ...(user.agentProfileIds || []),
+].filter(Boolean)
+
+const messageAgentIds = (message = {}) => [
+  message.agentUserId,
+  message.ownerId,
+  message.agentId,
+  message.ownerAgentId,
+].filter(Boolean)
+
+const isVisibleUserMessage = (message, user) => {
+  if (!user) return false
+  if (message.seekerId || message.userId) return message.seekerId === user.id || message.userId === user.id
+  if (message.seekerEmail || message.email) return message.seekerEmail === user.email || message.email === user.email
+  return false
+}
+
+const isVisibleAgentMessage = (message, user) => {
+  if (!user) return false
+  const assignedAgentIds = messageAgentIds(message)
+  if (assignedAgentIds.length) return agentIdentityIdsForUser(user).some((id) => assignedAgentIds.includes(id))
+  return message.copiedToAgentId === user.id
+}
 
 const countStoredSocialItems = (slice) => {
   try {
@@ -527,8 +556,10 @@ export default function DashboardPage({ variant = 'user' }) {
   const editingListingId = activeSection === 'edit-listing' ? pathParts[3] : ''
   const editingListing = editingListingId ? getListing(editingListingId) : null
   const relevantMessages = variant === 'agent'
-    ? messages.filter((message) => user?.role === 'agent' || message.agent === user?.name || message.owner === user?.name)
-    : messages
+    ? messages.filter((message) => isVisibleAgentMessage(message, user))
+    : variant === 'user'
+      ? messages.filter((message) => isVisibleUserMessage(message, user))
+      : messages
   const agentRespondedMessages = relevantMessages.filter((message) => (message.replies || []).length > 0)
   const unreadInquiryCount = relevantMessages.filter((message) => !message.isRead).length
   const inquiryNotifications = relevantMessages.filter((message) => !message.isRead).map((message) => ({
@@ -542,7 +573,11 @@ export default function DashboardPage({ variant = 'user' }) {
     time: search.lastAlertAt ? new Date(search.lastAlertAt).toLocaleDateString() : 'Today',
   }))
   const visibleNotifications = [...inquiryNotifications, ...searchAlertNotifications, ...(savedNotifications || []), ...notifications].filter((item) => !dismissedNotifications.includes(item.id))
-  const agentListings = managedListings.filter((property) => property.agent.name === (user?.name || 'Sarah Agent'))
+  const agentListings = managedListings.filter((property) => {
+    const ids = agentIdentityIdsForUser(user)
+    if (property.agent?.id && ids.length) return ids.includes(property.agent.id)
+    return property.agent.name === (user?.name || 'Sarah Agent')
+  })
   const agentListingIds = agentListings.map((property) => property.id)
   const agentMetrics = agentListingIds.reduce((totals, id) => {
     const metrics = listingAnalytics[id] || {}
@@ -832,6 +867,7 @@ export default function DashboardPage({ variant = 'user' }) {
       }
     }
     const agent = {
+      id: user?.id || 'sarah-agent',
       name: user?.name || 'Sarah Agent',
       image: user?.image || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=70',
       verificationStatus: user?.agentVerification?.status || (user?.role === 'agent' ? 'Pending' : 'Verified'),
@@ -1033,7 +1069,10 @@ export default function DashboardPage({ variant = 'user' }) {
             </article>
           </div>
         )}
-        {activeSection !== 'overview' && !(variant === 'user' && ['saved-searches', 'compare-properties'].includes(activeSection)) && (
+        {activeSection === 'messages' && (
+          <MessagesPanel messages={relevantMessages} variant={variant} user={user} addMessageReply={addMessageReply} />
+        )}
+        {activeSection !== 'overview' && activeSection !== 'messages' && !(variant === 'user' && ['saved-searches', 'compare-properties'].includes(activeSection)) && (
           <div className="dashboard-grid">
             <article className="dashboard-panel wide-panel">
               <div className="panel-heading"><h2>{sectionTitle}</h2><Link to={`/dashboard/${variant}`}>Overview</Link></div>
