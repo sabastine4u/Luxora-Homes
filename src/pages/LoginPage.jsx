@@ -3,6 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Icon from '../components/common/Icon'
 import { useAuth } from '../context/AuthContext'
 import { useUI } from '../context/UIContext'
+import { dashboardPathForRole } from '../hooks/useAuthGuard'
+
+const resolvePostLoginPath = (user, from) => {
+  const dashboardPath = dashboardPathForRole(user?.role)
+  if (!from) return dashboardPath
+  if (!from.startsWith('/dashboard/')) return from
+  return from === dashboardPath || from.startsWith(`${dashboardPath}/`) ? from : dashboardPath
+}
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -17,7 +25,7 @@ export default function LoginPage() {
     try {
       const nextUser = await login(form)
       notify(`Welcome back, ${nextUser.name}.`)
-      navigate(location.state?.from || `/dashboard/${nextUser.role === 'admin' ? 'admin' : nextUser.role === 'agent' ? 'agent' : 'user'}`, { replace: true })
+      navigate(resolvePostLoginPath(nextUser, location.state?.from), { replace: true })
     } catch {
       notify('Sign in failed. Check the demo credentials.', 'error')
     }
