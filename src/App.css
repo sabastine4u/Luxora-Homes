@@ -3306,13 +3306,16 @@ select {
 .login-split-page {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: 100vh;
+  height: 100svh;
+  min-height: 100svh;
+  overflow: hidden;
   background: var(--bg);
 }
 
 .login-visual-panel {
   position: relative;
-  min-height: 100vh;
+  height: 100svh;
+  min-height: 100svh;
   overflow: hidden;
 }
 
@@ -3383,18 +3386,72 @@ select {
 
 .login-form-panel {
   display: grid;
-  min-height: 100vh;
+  height: 100svh;
+  min-height: 100svh;
+  overflow: hidden;
   place-items: center;
-  padding: 40px;
+  padding: clamp(12px, 2.2vh, 24px) 40px;
 }
 
 .login-form-shell {
   width: min(100%, 460px);
 }
 
+.login-form-shell .brand {
+  font-size: 1.05rem;
+}
+
+.login-form-shell .brand-mark {
+  width: 36px;
+  height: 36px;
+}
+
+.login-form-shell .auth-brand {
+  margin-bottom: clamp(8px, 1.2vh, 12px);
+}
+
 .login-card-flat {
   width: 100%;
+  padding: clamp(14px, 2vh, 18px);
   box-shadow: none;
+}
+
+.login-card-flat .eyebrow {
+  margin-bottom: 6px;
+  font-size: 0.84rem;
+}
+
+.login-card-flat h1 {
+  font-size: clamp(1.85rem, 4vh, 2.35rem);
+}
+
+.login-card-flat > p,
+.login-card-flat .auth-switch {
+  margin-top: 5px;
+  line-height: 1.35;
+}
+
+.login-card-flat .auth-form {
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.login-card-flat .auth-form label {
+  gap: 5px;
+  font-size: 0.9rem;
+}
+
+.login-card-flat .auth-form input {
+  min-height: 40px;
+}
+
+.login-card-flat .auth-wide {
+  margin-top: 6px;
+}
+
+.login-card-flat .btn,
+.login-card-flat .social-login-grid button {
+  min-height: 40px;
 }
 
 .auth-divider {
@@ -3404,6 +3461,10 @@ select {
   margin: 26px 0 18px;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.login-card-flat .auth-divider {
+  margin: 10px 0;
 }
 
 .auth-divider::before,
@@ -3417,7 +3478,7 @@ select {
 .social-login-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .social-login-grid button {
@@ -3433,6 +3494,8 @@ select {
 @media (max-width: 960px) {
   .login-split-page {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
   }
 
   .login-visual-panel {
@@ -3440,6 +3503,82 @@ select {
   }
 
   .login-form-panel {
-    padding: 28px 16px;
+    height: auto;
+    overflow: visible;
+    padding: clamp(14px, 3svh, 28px) 16px;
+  }
+
+  .login-form-shell .auth-brand {
+    margin-bottom: 12px;
+  }
+
+  .login-card-flat {
+    padding: clamp(16px, 4svh, 22px);
+  }
+
+  .login-card-flat > p,
+  .login-card-flat .auth-switch {
+    line-height: 1.45;
+  }
+
+  .login-card-flat .auth-form {
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .login-card-flat .auth-form input {
+    min-height: 44px;
+  }
+
+  .login-card-flat .auth-wide {
+    margin-top: 8px;
+  }
+
+  .login-card-flat .auth-divider {
+    margin: 14px 0 12px;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 961px) {
+  .login-form-panel {
+    padding-block: 10px;
+  }
+
+  .login-form-shell .auth-brand {
+    margin-bottom: 8px;
+  }
+
+  .login-card-flat {
+    padding: 12px 16px;
+  }
+
+  .login-card-flat h1 {
+    font-size: 1.8rem;
+  }
+
+  .login-card-flat > p {
+    font-size: 0.92rem;
+  }
+
+  .login-card-flat .auth-form {
+    gap: 7px;
+    margin-top: 10px;
+  }
+
+  .login-card-flat .auth-form input {
+    min-height: 38px;
+  }
+
+  .login-card-flat .btn,
+  .login-card-flat .social-login-grid button {
+    min-height: 38px;
+  }
+
+  .login-card-flat .auth-divider {
+    margin: 8px 0;
+  }
+
+  .login-card-flat .auth-switch {
+    font-size: 0.92rem;
   }
 }
