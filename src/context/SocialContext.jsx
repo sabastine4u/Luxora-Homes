@@ -181,6 +181,11 @@ function SocialStateProvider({ children, registeredUsers, user, userKey }) {
     persistStateForUser(targetUser, { ...targetState, messages: [{ ...message, copiedToAgentId: targetUser.id }, ...targetState.messages] })
   }, [findAgentForMessage, persistStateForUser])
 
+  useEffect(() => {
+    if (!user || !messages.length) return
+    messages.forEach(copyMessageToAgent)
+  }, [copyMessageToAgent, messages, user])
+
   const syncMessageForUser = useCallback((targetUser, id, updater) => {
     if (!targetUser) return
     if (targetUser.id === user?.id) return

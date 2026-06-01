@@ -13,6 +13,24 @@ const demoUsers = [
   { id: 'admin-1', name: 'Admin', email: 'admin@luxora.demo', password: 'password', role: 'admin', phone: '+234 803 456 7890', accountType: 'admin', accountStatus: 'Active', emailVerified: true, phoneVerified: true },
 ]
 
+const demoUserFor = (user = {}) => demoUsers.find((item) => item.id === user.id || normalizeEmail(item.email) === normalizeEmail(user.email))
+
+const withDemoUserBackfill = (user) => {
+  const demoUser = demoUserFor(user)
+  if (!demoUser) return user
+
+  return {
+    ...demoUser,
+    ...user,
+    agentProfileId: user.agentProfileId || demoUser.agentProfileId,
+    agentProfileIds: user.agentProfileIds?.length ? user.agentProfileIds : demoUser.agentProfileIds,
+    agentVerification: {
+      ...(demoUser.agentVerification || {}),
+      ...(user.agentVerification || {}),
+    },
+  }
+}
+
 const readStoredUser = () => {
   try {
     return JSON.parse(localStorage.getItem(storageKey))
@@ -25,8 +43,9 @@ const readStoredUsers = () => {
   try {
     const storedUsers = JSON.parse(localStorage.getItem(usersStorageKey))
     if (Array.isArray(storedUsers) && storedUsers.length) {
-      const storedIds = storedUsers.map((item) => item.id)
-      return [...storedUsers, ...demoUsers.filter((item) => !storedIds.includes(item.id))]
+      const hydratedStoredUsers = storedUsers.map(withDemoUserBackfill)
+      const storedIds = hydratedStoredUsers.map((item) => item.id)
+      return [...hydratedStoredUsers, ...demoUsers.filter((item) => !storedIds.includes(item.id))]
     }
     return demoUsers
   } catch {
@@ -47,25 +66,31 @@ const defaultContactPreferences = {
   sms: false,
 }
 
-const withUserDefaults = (nextUser) => nextUser ? {
-  ...nextUser,
-  accountStatus: nextUser.accountStatus || 'Active',
-  accountType: nextUser.accountType || (nextUser.role === 'agent' ? 'agent' : 'buyer'),
-  emailVerified: Boolean(nextUser.emailVerified),
-  phoneVerified: Boolean(nextUser.phoneVerified),
-  verificationCode: nextUser.verificationCode || '123456',
-  agentVerification: nextUser.agentVerification || (nextUser.role === 'agent' ? { status: 'Pending', documents: [] } : null),
-  bio: nextUser.bio || '',
-  image: nextUser.image || '',
-  contactPreferences: {
-    ...defaultContactPreferences,
-    ...(nextUser.contactPreferences || {}),
-  },
-  notificationSettings: {
-    ...defaultNotificationSettings,
-    ...(nextUser.notificationSettings || {}),
-  },
-} : null
+const withUserDefaults = (nextUser) => {
+  if (!nextUser) return null
+
+  const hydratedUser = withDemoUserBackfill(nextUser)
+
+  return {
+    ...hydratedUser,
+    accountStatus: hydratedUser.accountStatus || 'Active',
+    accountType: hydratedUser.accountType || (hydratedUser.role === 'agent' ? 'agent' : 'buyer'),
+    emailVerified: Boolean(hydratedUser.emailVerified),
+    phoneVerified: Boolean(hydratedUser.phoneVerified),
+    verificationCode: hydratedUser.verificationCode || '123456',
+    agentVerification: hydratedUser.agentVerification || (hydratedUser.role === 'agent' ? { status: 'Pending', documents: [] } : null),
+    bio: hydratedUser.bio || '',
+    image: hydratedUser.image || '',
+    contactPreferences: {
+      ...defaultContactPreferences,
+      ...(hydratedUser.contactPreferences || {}),
+    },
+    notificationSettings: {
+      ...defaultNotificationSettings,
+      ...(hydratedUser.notificationSettings || {}),
+    },
+  }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => withUserDefaults(readStoredUser()))
