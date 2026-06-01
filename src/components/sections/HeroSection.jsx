@@ -11,12 +11,7 @@ export default function HeroSection() {
   const submitSearch = (event) => {
     event.preventDefault()
     const params = new URLSearchParams()
-    if (searchType === 'short-let') {
-      params.set('type', 'rent')
-      params.set('category', 'short-let')
-    } else {
-      params.set('type', searchType)
-    }
+    params.set('type', searchType)
     navigate(`/listings?${params.toString()}`)
   }
 
@@ -46,7 +41,7 @@ export default function HeroSection() {
           <div className="search-tabs" role="tablist" aria-label="Property search type">
             <button type="button" className={searchType === 'buy' ? 'is-active' : ''} onClick={() => setSearchType('buy')}>Buy</button>
             <button type="button" className={searchType === 'rent' ? 'is-active' : ''} onClick={() => setSearchType('rent')}>Rent</button>
-            <button type="button" className={searchType === 'short-let' ? 'is-active' : ''} onClick={() => setSearchType('short-let')}>Short-let</button>
+            <button type="button" className={searchType === 'lease' ? 'is-active' : ''} onClick={() => setSearchType('lease')}>Lease</button>
           </div>
           <div className="search-grid">
             <label>
