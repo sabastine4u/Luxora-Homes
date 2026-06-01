@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import HeroSection from './components/sections/HeroSection'
@@ -37,22 +38,43 @@ function HomePage() {
   )
 }
 
+function ScrollToRouteTarget() {
+  const { hash, pathname, search } = useLocation()
+
+  useEffect(() => {
+    if (hash) {
+      const target = document.getElementById(decodeURIComponent(hash.slice(1)))
+      if (target) {
+        target.scrollIntoView({ block: 'start' })
+        return
+      }
+    }
+
+    window.scrollTo({ top: 0, left: 0 })
+  }, [hash, pathname, search])
+
+  return null
+}
+
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<main className="app-shell"><HomePage /></main>} />
-      <Route path="/listings" element={<ListingsPage />} />
-      <Route path="/agents" element={<AgentsPage />} />
-      <Route path="/agency/:id" element={<AgencyPage />} />
-      <Route path="/property/:id" element={<PropertyDetailsPage />} />
-      <Route path="/auth/login" element={<LoginPage />} />
-      <Route path="/auth/register" element={<RegisterPage />} />
-      <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/dashboard/user/*" element={<ProtectedRoute roles={['user', 'agent', 'admin']}><DashboardPage variant="user" /></ProtectedRoute>} />
-      <Route path="/dashboard/agent/*" element={<ProtectedRoute roles={['agent', 'admin']}><DashboardPage variant="agent" /></ProtectedRoute>} />
-      <Route path="/dashboard/admin/*" element={<ProtectedRoute roles={['admin']}><DashboardPage variant="admin" /></ProtectedRoute>} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <ScrollToRouteTarget />
+      <Routes>
+        <Route path="/" element={<main className="app-shell"><HomePage /></main>} />
+        <Route path="/listings" element={<ListingsPage />} />
+        <Route path="/agents" element={<AgentsPage />} />
+        <Route path="/agency/:id" element={<AgencyPage />} />
+        <Route path="/property/:id" element={<PropertyDetailsPage />} />
+        <Route path="/auth/login" element={<LoginPage />} />
+        <Route path="/auth/register" element={<RegisterPage />} />
+        <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/dashboard/user/*" element={<ProtectedRoute roles={['user', 'agent', 'admin']}><DashboardPage variant="user" /></ProtectedRoute>} />
+        <Route path="/dashboard/agent/*" element={<ProtectedRoute roles={['agent', 'admin']}><DashboardPage variant="agent" /></ProtectedRoute>} />
+        <Route path="/dashboard/admin/*" element={<ProtectedRoute roles={['admin']}><DashboardPage variant="admin" /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }
 
